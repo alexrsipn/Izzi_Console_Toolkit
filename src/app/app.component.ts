@@ -3,7 +3,7 @@ import { AppStore } from './app.store';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { SpinnerComponent } from './components/spinner/spinner.component';
-import { ControlDeskComponent } from './components/control-desk/control-desk.component';
+import { ControlDateComponent } from './components/control-date/control-date.component';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +12,7 @@ import { ControlDeskComponent } from './components/control-desk/control-desk.com
     CommonModule,
     MatButtonModule,
     SpinnerComponent,
-    ControlDeskComponent,
+    ControlDateComponent,
   ],
   templateUrl: './app.component.html',
 })

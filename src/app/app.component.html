@@ -4,26 +4,40 @@
 <main class="container">
   <section
     style="
+      height: 90%;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 90%;
+      flex-direction: column;
     "
   >
-    <app-control-desk
+    <!-- <app-control-desk
       [controlDesks]="vm.controlDesk"
       (deskChanged)="store.setSelectedDesk($event)"
-    ></app-control-desk>
+    ></app-control-desk> -->
+    <div>
+      <app-control-date
+        (rangeChange)="store.setSelectedRange($event)"
+      ></app-control-date>
+    </div>
+    <div style="padding: 3rem">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="store.descargarRazones()"
+        [disabled]="!vm.isDateRangeSelected.valid"
+      >
+        Descargar
+      </button>
+    </div>
+    <!-- <div style="padding: 3rem">
+      <button mat-raised-button color="primary" (click)="store.prueba()">
+        Prueba async
+      </button>
+    </div> -->
   </section>
   <footer class="flex-evenly">
-    <!-- <button mat-raised-button color="primary" (click)="store.prueba()">
-      Prueba
-    </button> -->
-    <button
-      mat-raised-button
-      color="basic"
-      (click)="store.sendCloseMessage({})"
-    >
+    <button mat-raised-button color="warn" (click)="store.sendCloseMessage({})">
       Cerrar
     </button>
   </footer>

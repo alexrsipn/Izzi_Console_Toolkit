@@ -5,16 +5,18 @@ import {
   Output,
 } from '@angular/core';
 import {
+  AbstractControl,
   FormControl,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDividerModule } from '@angular/material/divider';
-import { map, tap } from 'rxjs';
+import { map } from 'rxjs';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import moment from 'moment';
@@ -39,7 +41,10 @@ export class ControlDateComponent {
 
   range = new FormGroup({
     start: new FormControl<Date | null>(null, [Validators.required]),
-    end: new FormControl<Date | null>(null, [Validators.required]),
+    end: new FormControl<Date | null>(null, [
+      Validators.required,
+      this.maxAllowedRangeValidator,
+    ]),
   });
 
   dateFilter = (d: Date | null): boolean => {
@@ -49,12 +54,6 @@ export class ControlDateComponent {
     const yesterday = new Date(yesterdayMoment.format('YYYY-MM-DD'));
     const past = new Date(pastMoment.format('YYYY-MM-DD'));
     return d ? d < yesterday && d > past : false;
-  };
-
-  rangeFilter = (d: Date | null): boolean => {
-    const selectedStart = this.range.get('start');
-    const selectedEnd = this.range.get('end');
-    return true;
   };
 
   @Output() rangeChange = this.range.valueChanges.pipe(
@@ -75,7 +74,6 @@ export class ControlDateComponent {
       start: new Date(startMoment),
       end: new Date(endMoment),
     });
-    // this.range.updateValueAndValidity();
     this.range.get('start')?.setErrors(null);
     this.range.get('end')?.setErrors(null);
     this.range.updateValueAndValidity();
@@ -87,5 +85,22 @@ export class ControlDateComponent {
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  private maxAllowedRangeValidator(
+    control: AbstractControl
+  ): ValidationErrors | null {
+    const start: Date | null = control.parent?.get('start')?.value;
+    const end: Date | null = control.value;
+    if (!start || !end) return null;
+
+    const maxAllowedRange = 15;
+    const millisecondsPerDay = 1000 * 60 * 60 * 24;
+    const differenceInMilliseconds = Math.abs(end.getTime() - start.getTime());
+    const differenceInDays = differenceInMilliseconds / millisecondsPerDay;
+
+    return differenceInDays > maxAllowedRange
+      ? { maxAllowedRange: true }
+      : null;
   }
 }

@@ -4,7 +4,6 @@ import {
   GetADailyExtractFileJSONResponse,
   GetAListDailyExtractFilesDateResponse,
   ListDailyExtractValidation,
-  Resource,
 } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
@@ -12,12 +11,8 @@ import { OfsRestApiService } from './services/ofs-rest-api.service';
 import { Message } from './types/plugin-api';
 import {
   EMPTY,
-  catchError,
   concatMap,
-  delay,
   delayWhen,
-  finalize,
-  forkJoin,
   from,
   map,
   mergeMap,
@@ -28,17 +23,13 @@ import {
 import { ControlDesk, DataRange } from './types/plugin';
 import { parseStringPromise } from 'xml2js';
 import { ExportService } from './services/export.service';
-import { DateRange } from '@angular/material/datepicker';
 
 interface State {
   isLoading: boolean;
-  resources: Resource[];
   resourceFields: string[];
-  controlDesks: ControlDesk[];
   selectedRange: DataRange;
   intervalDates: string[];
   ApptManualMoves: GetADailyExtractFileJSONResponse[];
-  // ApptManualMovesComplete?: GetADailyExtractFileJSONResponse[];
   ManualMoves: any[];
   listDailyExtract?: ListDailyExtractValidation[];
   validatedDates: string[];
@@ -46,7 +37,6 @@ interface State {
 
 const initialState: State = {
   isLoading: false,
-  resources: [],
   resourceFields: [
     'resourceId',
     'resourceInternalId',
@@ -54,7 +44,6 @@ const initialState: State = {
     'parentResourceInternalId',
     'parentResourceId',
   ],
-  controlDesks: [],
   selectedRange: { from: null, to: null, valid: false },
   intervalDates: [],
   ApptManualMoves: [
@@ -66,7 +55,6 @@ const initialState: State = {
   ],
   ManualMoves: [],
   validatedDates: [],
-  // ApptManualMovesComplete: [],
 };
 
 @Injectable({
@@ -84,7 +72,6 @@ export class AppStore extends ComponentStore<State> {
   }
 
   // Selectors
-  private readonly controlDesk$ = this.select((state) => state.controlDesks);
   private readonly isLoading$ = this.select((state) => state.isLoading);
   private readonly isDateRangeSelected = this.select(
     (state) => state.selectedRange
@@ -92,23 +79,15 @@ export class AppStore extends ComponentStore<State> {
 
   //View Model
   public readonly vm$ = this.select(
-    this.controlDesk$,
     this.isLoading$,
     this.isDateRangeSelected,
-    (controlDesk, isLoading, isDateRangeSelected) => ({
-      controlDesk,
+    (isLoading, isDateRangeSelected) => ({
       isLoading,
       isDateRangeSelected,
     })
   );
 
   // Updaters
-  readonly setSelectedDesk = this.updater<ControlDesk | null>(
-    (state, selectedDesk) => ({
-      ...state,
-      selectedDesk,
-    })
-  );
   readonly setSelectedRange = this.updater<DataRange>(
     (state, selectedRange) => ({ ...state, selectedRange })
   );
@@ -136,13 +115,6 @@ export class AppStore extends ComponentStore<State> {
       ManualMoves,
     })
   );
-  readonly setControlDesks = this.updater<ControlDesk[]>(
-    (state, controlDesks) => ({ ...state, controlDesks })
-  );
-  readonly addResources = this.updater<Resource[]>((state, resources) => ({
-    ...state,
-    resources: [...state.resources, ...resources],
-  }));
   readonly setIsLoading = this.updater<boolean>((state, isLoading) => ({
     ...state,
     isLoading,
@@ -152,8 +124,6 @@ export class AppStore extends ComponentStore<State> {
     $.pipe(
       tap(() => this.setIsLoading(true)),
       map(({ securedData }) => {
-        // switchMap(({ securedData }) => {
-        // console.log(securedData);
         const { ofscRestClientId, ofscRestSecretId, urlOFSC } = securedData;
         if (!ofscRestClientId || !ofscRestClientId || !urlOFSC) {
           throw new Error(
@@ -223,7 +193,6 @@ export class AppStore extends ComponentStore<State> {
         explicitArray: false,
         mergeAttrs: true,
       });
-      // this.get().ApptManualMovesComplete!.push(json);
       this.get().ApptManualMoves.push(json);
       return json;
     } catch (error) {
@@ -276,7 +245,6 @@ export class AppStore extends ComponentStore<State> {
   }
 
   private handleJson() {
-    // const { ApptManualMovesComplete } = this.get();
     const { ApptManualMoves } = this.get();
     const json: any[] = [];
     ApptManualMoves.map(({ appt_manual_moves }) => {
@@ -285,15 +253,20 @@ export class AppStore extends ComponentStore<State> {
           const newItem: { [key: string]: string | undefined } = {};
           Field.forEach((field) => {
             if (
-              field.name === 'ID de acción de movimiento' ||
-              field.name === 'ID de motivo de movimiento' ||
-              field.name === 'ID de usuario' ||
-              field.name === 'Mover a ID de proveedor' ||
-              field.name === 'Mover de ID de proveedor'
+              field.name === 'Condición de movimiento' ||
+              field.name === 'Discrepancia de aptitud laboral' ||
+              field.name === 'Discrepancia de zona de trabajo' ||
+              field.name === 'Enrutado automático a fecha' ||
+              field.name === 'Etiqueta de motivo de movimiento' ||
+              field.name === 'Hora de acción de movimiento' ||
+              field.name === 'ID de actividad' ||
+              field.name === 'Mover a fecha' ||
+              field.name === 'Mover de fecha' ||
+              field.name === 'Nombre de motivo de movimiento' ||
+              field.name === 'Nombre de usuario'
             ) {
-              return;
+              newItem[field.name] = field._;
             }
-            newItem[field.name] = field._;
           });
           json.push(newItem);
           return newItem;

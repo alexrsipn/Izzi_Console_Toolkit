@@ -17,5 +17,5 @@ import { ControlDateComponent } from './components/control-date/control-date.com
   templateUrl: './app.component.html',
 })
 export class AppComponent {
-  constructor(protected readonly store: AppStore) {}
+  constructor(protected readonly store: AppStore) { }
 }

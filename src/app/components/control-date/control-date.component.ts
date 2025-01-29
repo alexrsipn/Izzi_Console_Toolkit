@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
   Output,
 } from '@angular/core';
 import {
@@ -17,9 +16,23 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDividerModule } from '@angular/material/divider';
 import { map } from 'rxjs';
-import { MatNativeDateModule } from '@angular/material/core';
+import { DateAdapter, MatNativeDateModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import moment from 'moment';
+import { MAT_DATE_LOCALE, MAT_DATE_FORMATS } from '@angular/material/core';
+import { NativeDateAdapter } from '@angular/material/core';
+
+const MY_DATE_FORMATS = {
+  parse: {
+    dateInput: 'DD/MM/YYYY',
+  },
+  display: {
+    dateInput: 'DD/MM/YYYY',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'LL',
+    monthYearA11yLabel: 'MMM YYYY',
+  },
+};
 
 @Component({
   selector: 'app-control-date',
@@ -34,6 +47,11 @@ import moment from 'moment';
     MatButtonModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
+    { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+  ],
   templateUrl: './control-date.component.html',
 })
 export class ControlDateComponent {

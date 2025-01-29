@@ -120,6 +120,7 @@ export class AppStore extends ComponentStore<State> {
     isLoading,
   }));
 
+  // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
     $.pipe(
       tap(() => this.setIsLoading(true)),
@@ -156,10 +157,16 @@ export class AppStore extends ComponentStore<State> {
             this.get().selectedRange.to!
         )
       ),
+      tap(() => this.clearBuffer()),
       tap(() => this.setIsLoading(false))
     )
   );
 
+  public sendCloseMessage = this.effect<Partial<Message>>((data$) =>
+    data$.pipe(tap((data) => this.ofsPluginApi.close(data)))
+  );
+
+  // Actions
   private listDailyExtract() {
     const { intervalDates } = this.get();
     return from(intervalDates).pipe(
@@ -203,6 +210,7 @@ export class AppStore extends ComponentStore<State> {
   }
 
   public descargarRazones() {
+    this.setIsLoading(true);
     this.createRange();
     this.exportManualMoveReasons();
   }
@@ -227,10 +235,6 @@ export class AppStore extends ComponentStore<State> {
     });
     this.setValidatedDates(arregloFechas);
   }
-
-  public sendCloseMessage = this.effect<Partial<Message>>((data$) =>
-    data$.pipe(tap((data) => this.ofsPluginApi.close(data)))
-  );
 
   private createRange() {
     const { selectedRange } = this.get();
@@ -288,6 +292,14 @@ export class AppStore extends ComponentStore<State> {
       }
     });
     this.setManualMovements(json);
+  }
+
+  private clearBuffer () {
+    this.setManualMovements([]);
+    this.setValidatedDates([]);
+    this.setIntervalDates([]);
+    this.setManualMovesRaw([]);
+    this.setSelectedRange({ from: null, to: null, valid: false });
   }
 
   private handleError(err: Error) {

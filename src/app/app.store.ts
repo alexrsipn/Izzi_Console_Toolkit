@@ -20,7 +20,7 @@ import {
   tap,
   toArray,
 } from 'rxjs';
-import { ControlDesk, DataRange } from './types/plugin';
+import { DataRange } from './types/plugin';
 import { parseStringPromise } from 'xml2js';
 import { ExportService } from './services/export.service';
 

@@ -1,6 +1,6 @@
 # Introducción
 
-El desarrollo consiste en la generación de una webapp, en Angular 17, que se debe ejecutar como un plugin dentro de Oracle Field Service (OFS) Mobility, como base para los desarrollos de plugins con API.
+El desarrollo consiste en la generación de una webapp, en Angular 18, que se debe ejecutar como un plugin dentro de Oracle Field Service (OFS), para exportar las razones de movimiento manual en formato XLSX, provenientes del Daily Extract.
 
 ## Configuración Externa En OFSC Requerida
 
@@ -8,28 +8,29 @@ Se requiere establecer los siguien tes parámetros en la configuración del plug
 
 ### En la sección ”General Information” o “Información General”
 
-- Name (Spanish): _Nombre plugin_
-- Name (English): _Nombre plugin_
-- Label: _etiqueta_plugin_
-- Entity: _Entidad_
-- Visibility Rules similar to: _Solo Si Aplica_
+- Name (Spanish): Exportar razones de movimiento manual
+- Name (English): Exportar razones de movimiento manual
+- Label: plugin_manualmoves
+- Entity: -
+- Visibility Rules similar to: -
 
 ### En la sección “Plugin Settings” o “Configuración del Plugin”:
 
 - Type: Archivo de plugin
 - Plugin Archivo: Cargar el archivo .zip generado
 - Disable plugin in offline: No seleccionado (aunque debe considerarse que en caso de que el plugin consuma servicios de internet, no podrá funcionar)
-- Secure parameters: _Solo Si Aplica_
+- Secure parameters: ofscRestClientId, ofscRestClientId y urlOFSC
 
 ### En la sección “Available Properties” o “Propiedades Disponibles”:
 
-- _Solo Si Aplica_
+- _No Aplica_
 
 ## Mapeo con Propiedades OFS
 
 Dentro del plugin las propiedades de OFS se mapean de la siguiente manera:
 | OFS | Plugin |
 |----------------------------|---------------------|
+|_NA_|_NA_|
 
 ## Comunicación con OFSC
 
@@ -48,14 +49,13 @@ Para desarrollar localmente sobre este proyecto se deben seguir los siguientes p
 
 1. Se recomienda instalar Node.js v20.10.0 LTS o superior y NPM 10.3.0 o superior.
 2. Clonar este repositorio.
-3. En caso de que se requieran consultar servicios de SOA, renombrar el archivo `src/assets/config/config.example.js` a `src/assets/config/config.js` y modificar los valores de `soa_url`, `soa_user` y `soa_password` a los requeridos por la instancia de SOA que se desea consultar.
-4. Ejecutar `npm install` para descargar todas las librerías.
-5. Ejecutar `ng serve` o `ng serve --disable-host-check` si se quiere acceder al plugin desde una instancia externa de OFSC.
+3. Ejecutar `npm install` para descargar e instalar todas las librerías.
+4. Ejecutar `npm run start-tunnel` (`ng serve --disable-host-check`) para acceder al plugin desde el entorno de desarrollo local y como plugin externo en OFSC.
 
 ## Build y Deploy
 
-1. Ejecutar `ng build`
-2. Crear y o editar el archivo de configuración `src/assets/config/config.js` utilizando como ejemplo el archivo `src/assets/config/config.example.js`.
+1. Ejecutar `npm run build`.
+2. En el archivo _index.html_ generado comentar la línea `<base href="/">` para no tener errores 404 en los archivos JS / CSS. 
 3. Comprimir en `.zip` el contenido de la carpeta `dist` (generada por el comando del paso 1) asegurándose de excluir los archivos con extensiones que no sean `.js`, `.html` o `.css` (específicamente eliminar cualquier `.txt` o `.ico` que el CLI de Angular haya generado).
 4. Cargar el archivo comprimido en la pantalla de configuración del plugin en Oracle Field Service.
 
@@ -63,4 +63,7 @@ Para desarrollar localmente sobre este proyecto se deben seguir los siguientes p
 
 Se recomienda realizar cualquier modificación siguiendo la técnica de "Smart and Dumb Components" muy utilizada en el ecosistema de Angular, donde la lógica se introduce en stores utilizando la librería Component Store.
 Adicionalmente, se recomienda introducir toda la lógica nueva en el archivo `app.store.ts` o en su defecto en los stores locales de cada componente que se comunican con el antes mencionado, con el objetivo de mantener las componentes lo más vacías posibles de lógica.
-Debido a que este plugin es una plantilla, se recomienda personalizar los nombres genéricos del proyecto (package), stores e index html, para una mejor diferenciación.
+
+## Acerca de
+
+[![Desarrollado por Alexis Ruiz para Izzi Telecom](https://img.shields.io/badge/Desarrollado_por-Alexis_Ruiz_para_Izzi_Telecom-blue)](https://github.com/alexrsipn)

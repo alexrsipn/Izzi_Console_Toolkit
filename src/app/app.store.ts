@@ -23,6 +23,7 @@ import {
 import { DataRange } from './types/plugin';
 import { parseStringPromise } from 'xml2js';
 import { ExportService } from './services/export.service';
+import { DialogService } from './services/dialog.service';
 
 interface State {
   isLoading: boolean;
@@ -64,7 +65,8 @@ export class AppStore extends ComponentStore<State> {
   constructor(
     private readonly ofsPluginApi: OfsApiPluginService,
     private readonly ofsRestApi: OfsRestApiService,
-    private readonly exportService: ExportService
+    private readonly exportService: ExportService,
+    private readonly dialogService: DialogService
   ) {
     super(initialState);
     this.handleOpenMessage(this.ofsPluginApi.openMessage$);
@@ -158,6 +160,7 @@ export class AppStore extends ComponentStore<State> {
         )
       ),
       tap(() => this.clearBuffer()),
+      tap(() => this.dialogService.success('Archivo generado con éxito')),
       tap(() => this.setIsLoading(false))
     )
   );

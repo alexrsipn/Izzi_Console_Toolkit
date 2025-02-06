@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, Inject, Injectable } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {MAT_DIALOG_DATA, MatDialog, MatDialogModule} from '@angular/material/dialog';
@@ -29,7 +30,7 @@ export class DialogService {
 @Component({
   selector: 'app-error-dialog',
   standalone: true,
-  imports: [MatIconModule, MatButtonModule, MatDialogModule],
+  imports: [MatIconModule, MatButtonModule, MatDialogModule, CommonModule],
   template: `
     <h1 mat-dialog-title style="margin-top: 1rem; display: flex">
       <span>Error </span>

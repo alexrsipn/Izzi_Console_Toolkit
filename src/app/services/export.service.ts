@@ -27,7 +27,7 @@ export class ExportService {
     this.saveAsExcelFile(excelBuffer, filename);
   }
 
-  private saveAsExcelFile(buffer: any, filename: string): void {
+  saveAsExcelFile(buffer: any, filename: string): void {
     const EXCEL_TYPE =
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
     const EXCEL_EXTENSION = '.xlsx';

@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
 import {
-  ApptManualMove,
   GetADailyExtractFileJSONResponse,
   GetAListDailyExtractFilesDateResponse,
   ListDailyExtractValidation,
-  ManualMove,
 } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
@@ -14,14 +12,11 @@ import {
   EMPTY,
   bufferCount,
   concatMap,
-  delayWhen,
   from,
-  interval,
   map,
   reduce,
   switchMap,
   tap,
-  throttle,
   toArray,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
@@ -34,8 +29,6 @@ interface State {
   isLoading: boolean;
   selectedRange: DataRange;
   intervalDates: string[];
-  ApptManualMoves: GetADailyExtractFileJSONResponse[];
-  ManualMoves: any[];
   listDailyExtract?: ListDailyExtractValidation[];
   validatedDates: string[];
 }
@@ -44,14 +37,6 @@ const initialState: State = {
   isLoading: false,
   selectedRange: { from: null, to: null, valid: false },
   intervalDates: [],
-  ApptManualMoves: [
-    {
-      appt_manual_moves: {
-        appt_manual_move: [],
-      },
-    },
-  ],
-  ManualMoves: [],
   validatedDates: [],
 };
 
@@ -104,12 +89,6 @@ export class AppStore extends ComponentStore<State> {
       validatedDates,
     })
   );
-  readonly setManualMovements = this.updater<string[]>(
-    (state, ManualMoves) => ({
-      ...state,
-      ManualMoves,
-    })
-  );
   readonly setIsLoading = this.updater<boolean>((state, isLoading) => ({
     ...state,
     isLoading,
@@ -148,16 +127,6 @@ export class AppStore extends ComponentStore<State> {
     )
   );
 
-  private readonly exportManualMoveReasonsByDay = this.effect(($) => $.pipe(
-    tap(() => this.setIsLoading(true)),
-    concatMap(() => this.listDailyExtract()),
-    tap((response) => this.handleListDailyExtractFiles(response)),
-    switchMap(() => this.dailyExtractFileByDay()),
-    throttle(() => interval(1000)),
-    tap(() => this.dialogService.success('Archivos generados con éxito')),
-    tap(() => this.setIsLoading(false))
-  ));
-
   public sendCloseMessage = this.effect<Partial<Message>>((data$) =>
     data$.pipe(tap((data) => this.ofsPluginApi.close(data)))
   );
@@ -193,44 +162,10 @@ export class AppStore extends ComponentStore<State> {
         this.dialogService.error(err);
       },
       complete: () => {
-        console.log('Complete, total: ' + manualMoves.length);
+        // console.log('Complete, total: ' + manualMoves.length);
         this.clearBuffer();
       },
     });
-    // from(ManualMoves).pipe(
-    //   bufferCount(chunkSize),
-    //   concatMap(chunk => {
-    //     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(chunk);
-    //     return Promise.resolve(worksheet);
-    //   }),
-    //   reduce((acc: XLSX.WorkBook, worksheet: XLSX.WorkSheet) => {
-    //     if (!acc.Sheets) {
-    //       acc = { Sheets: { movimientos: worksheet }, SheetNames: ['movimientos'] };
-    //     } else {
-    //       XLSX.utils.book_append_sheet(acc, worksheet, `movimientos_${Object.keys(acc.Sheets).length}`);
-    //     }
-    //     return acc;
-    //   }, {} as XLSX.WorkBook),
-    //   concatMap(workbook => {
-    //     const excelBuffer: any = XLSX.write(workbook, {
-    //       bookType: 'xlsx',
-    //       type: 'array',
-    //     });
-    //     return Promise.resolve(excelBuffer);
-    //   })
-    // ).subscribe({
-    //   next: (excelBuffer) => {
-    //     this.exportService.saveAsExcelFile(excelBuffer, `MovMans_${this.get().selectedRange.from} a ${this.get().selectedRange.to}`);
-    //   },
-    //   error: (err) => {
-    //     this.dialogService.error(err);
-    //   },
-    //   complete: () => {
-    //     // console.log('Complete, total: ' + this.get().ManualMoves.length);
-    //     this.clearBuffer();
-    //   }
-    // }
-    // )
   }
 
   private listDailyExtract() {
@@ -253,32 +188,9 @@ export class AppStore extends ComponentStore<State> {
     );
   }
 
-  private dailyExtractFileByDay() {
-    const { validatedDates } = this.get();
-    return from(validatedDates).pipe(
-      concatMap((date) => this.ofsRestApi.getADailyExtractFile(date).pipe(
-        map((response) => ({ response, date }))
-      )),
-      // tap(({ response }) => this.setManualMovements([response])),
-      concatMap(({ response, date }) => this.handleDailyExtractFileByDay([response]).pipe(
-        map((response) => ({ response, date }))
-      )),
-      // tap(({ response }) => this.handleJson(response)),
-      tap(({ date }) => this.exportService.exportAsExcelFile(this.get().ManualMoves, `MovMans_${date}`)),
-      tap(() => this.clearBufferByDay()),
-    );
-  }
-
   private handleDailyExtractFile(files: string[]) {
     return from(files).pipe(
       concatMap((file) => from(this.xmlToJson(file))),
-      toArray()
-    );
-  }
-
-  private handleDailyExtractFileByDay(files: string[]) {
-    return from(files).pipe(
-      delayWhen((file) => this.xmlToJson(file)),
       toArray()
     );
   }
@@ -307,8 +219,6 @@ export class AppStore extends ComponentStore<State> {
   public descargarRazones() {
     this.setIsLoading(true);
     this.createRange();
-    const { intervalDates } = this.get();
-    // intervalDates.length > 8 ? this.exportManualMoveReasonsByDay() : this.exportManualMoveReasons();
     this.exportManualMoveReasons();
   }
 
@@ -327,11 +237,6 @@ export class AppStore extends ComponentStore<State> {
         });
       }
     });
-    // arregloFechas.sort((a, b) => {
-    //   const dateA = new Date(a);
-    //   const dateB = new Date(b);
-    //   return dateA.getTime() - dateB.getTime();
-    // });
     this.setValidatedDates(arregloFechas);
   }
 
@@ -345,52 +250,6 @@ export class AppStore extends ComponentStore<State> {
       fechaActual.setDate(fechaActual.getDate() + 1);
     }
     this.setIntervalDates(fechas);
-  }
-
-  private handleJson() {
-    const { ApptManualMoves } = this.get();
-    const json: any[] = [];
-    ApptManualMoves.map(({ appt_manual_moves }) => {
-      if (Array.isArray(appt_manual_moves.appt_manual_move)) {
-        appt_manual_moves.appt_manual_move.forEach(({ Field }) => {
-          const newItem: { [key: string]: string | undefined } = {};
-          Field.forEach((field) => {
-            if (
-              field.name === 'Condición de movimiento' ||
-              field.name === 'Discrepancia de aptitud laboral' ||
-              field.name === 'Discrepancia de zona de trabajo' ||
-              field.name === 'Enrutado automático a fecha' ||
-              field.name === 'Etiqueta de motivo de movimiento' ||
-              field.name === 'Hora de acción de movimiento' ||
-              field.name === 'ID de actividad' ||
-              field.name === 'Mover a fecha' ||
-              field.name === 'Mover de fecha' ||
-              field.name === 'Nombre de motivo de movimiento' ||
-              field.name === 'Nombre de usuario'
-            ) {
-              newItem[field.name] = field._;
-            }
-          });
-          json.push(newItem);
-          return newItem;
-        });
-      } else if (
-        typeof appt_manual_moves.appt_manual_move === 'object' &&
-        appt_manual_moves.appt_manual_move !== null
-      ) {
-        const arrayFromObject: ApptManualMove[] = [];
-        arrayFromObject.push(appt_manual_moves.appt_manual_move);
-        arrayFromObject.map(({ Field }) => {
-          const newItem: { [key: string]: string | undefined } = {};
-          Field.forEach((field) => {
-            newItem[field.name] = field._;
-          });
-          json.push(newItem);
-          return newItem;
-        });
-      }
-    });
-    this.setManualMovements(json);
   }
 
   private handleJsonTest(ApptManualMoves: GetADailyExtractFileJSONResponse) {
@@ -417,58 +276,13 @@ export class AppStore extends ComponentStore<State> {
       json.push(newItem);
       return newItem;
     });
-    // ApptManualMoves.map(({ appt_manual_moves }) => {
-    //   if (Array.isArray(appt_manual_moves.appt_manual_move)) {
-    //     appt_manual_moves.appt_manual_move.forEach(({ Field }) => {
-    //       const newItem: { [key: string]: string | undefined } = {};
-    //       Field.forEach((field) => {
-    //         if (
-    //           field.name === 'Condición de movimiento' ||
-    //           field.name === 'Discrepancia de aptitud laboral' ||
-    //           field.name === 'Discrepancia de zona de trabajo' ||
-    //           field.name === 'Enrutado automático a fecha' ||
-    //           field.name === 'Etiqueta de motivo de movimiento' ||
-    //           field.name === 'Hora de acción de movimiento' ||
-    //           field.name === 'ID de actividad' ||
-    //           field.name === 'Mover a fecha' ||
-    //           field.name === 'Mover de fecha' ||
-    //           field.name === 'Nombre de motivo de movimiento' ||
-    //           field.name === 'Nombre de usuario'
-    //         ) {
-    //           newItem[field.name] = field._;
-    //         }
-    //       });
-    //       json.push(newItem);
-    //       return newItem;
-    //     });
-    //   } else if (
-    //     typeof appt_manual_moves.appt_manual_move === 'object' &&
-    //     appt_manual_moves.appt_manual_move !== null
-    //   ) {
-    //     const arrayFromObject: ApptManualMove[] = [];
-    //     arrayFromObject.push(appt_manual_moves.appt_manual_move);
-    //     arrayFromObject.map(({ Field }) => {
-    //       const newItem: { [key: string]: string | undefined } = {};
-    //       Field.forEach((field) => {
-    //         newItem[field.name] = field._;
-    //       });
-    //       json.push(newItem);
-    //       return newItem;
-    //     });
-    //   }
-    // });
     return json;
   }
 
   private clearBuffer() {
-    this.setManualMovements([]);
     this.setValidatedDates([]);
     this.setIntervalDates([]);
     this.setSelectedRange({ from: null, to: null, valid: false });
-  }
-
-  private clearBufferByDay() {
-    this.setManualMovements([]);
   }
 
   private handleError(err: Error) {

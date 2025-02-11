@@ -55,7 +55,6 @@ const MY_DATE_FORMATS = {
   templateUrl: './control-date.component.html',
 })
 export class ControlDateComponent {
-  // @Output() rangeChange = new EventEmitter<any>();
 
   range = new FormGroup({
     start: new FormControl<Date | null>(null, [Validators.required]),

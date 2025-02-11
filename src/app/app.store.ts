@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
+  ApptManualMove,
   GetADailyExtractFileJSONResponse,
   GetAListDailyExtractFilesDateResponse,
   ListDailyExtractValidation,
@@ -122,7 +123,6 @@ export class AppStore extends ComponentStore<State> {
       switchMap((response) => this.handleDailyExtractFile(response)),
       concatMap((json) => this.handleJsonBody(json)),
       tap((json) => this.exportByChunks(json)),
-      tap(() => this.dialogService.success('Archivo generado con éxito')),
       tap(() => this.setIsLoading(false))
     )
   );
@@ -162,7 +162,8 @@ export class AppStore extends ComponentStore<State> {
         this.dialogService.error(err);
       },
       complete: () => {
-        // console.log('Complete, total: ' + manualMoves.length);
+        console.log('Complete, total: ' + manualMoves.length);
+        this.dialogService.success('Archivo generado con éxito');
         this.clearBuffer();
       },
     });
@@ -197,7 +198,7 @@ export class AppStore extends ComponentStore<State> {
 
   private handleJsonBody(json: GetADailyExtractFileJSONResponse[]) {
     return from(json).pipe(
-      concatMap((json) => this.handleJsonTest(json)),
+      concatMap((json) => this.handleJson(json)),
       toArray()
     );
   }
@@ -211,15 +212,22 @@ export class AppStore extends ComponentStore<State> {
       return json;
     } catch (error) {
       console.error('Error parsing XML: ', error);
-      // this.handleError({message: error, name: error})
+      this.dialogService.error('Error parsing XML: ' + String(error));
       throw error;
     }
   }
 
   public descargarRazones() {
     this.setIsLoading(true);
-    this.createRange();
-    this.exportManualMoveReasons();
+    const range = this.createRange();
+    if (range.length > 16 && range.length < 0) {
+      this.dialogService.error('El rango de fechas no puede ser mayor a 15 días');
+      this.clearBuffer();
+      this.setIsLoading(false);
+      return;
+    } else {
+      this.exportManualMoveReasons();
+    }
   }
 
   private handleListDailyExtractFiles(
@@ -240,7 +248,7 @@ export class AppStore extends ComponentStore<State> {
     this.setValidatedDates(arregloFechas);
   }
 
-  private createRange() {
+  private createRange(): string[] {
     const { selectedRange } = this.get();
     let fechas = [];
     let fechaActual = new Date(selectedRange.from!);
@@ -250,32 +258,60 @@ export class AppStore extends ComponentStore<State> {
       fechaActual.setDate(fechaActual.getDate() + 1);
     }
     this.setIntervalDates(fechas);
+    return fechas;
   }
 
-  private handleJsonTest(ApptManualMoves: GetADailyExtractFileJSONResponse) {
+  private handleJson(ApptManualMoves: GetADailyExtractFileJSONResponse) {
     const json: any[] = [];
-    ApptManualMoves.appt_manual_moves.appt_manual_move.map(({ Field }) => {
-      const newItem: { [key: string]: string | undefined } = {};
-      Field.forEach((field) => {
-        if (
-          field.name === 'Condición de movimiento' ||
-          field.name === 'Discrepancia de aptitud laboral' ||
-          field.name === 'Discrepancia de zona de trabajo' ||
-          field.name === 'Enrutado automático a fecha' ||
-          field.name === 'Etiqueta de motivo de movimiento' ||
-          field.name === 'Hora de acción de movimiento' ||
-          field.name === 'ID de actividad' ||
-          field.name === 'Mover a fecha' ||
-          field.name === 'Mover de fecha' ||
-          field.name === 'Nombre de motivo de movimiento' ||
-          field.name === 'Nombre de usuario'
-        ) {
-          newItem[field.name] = field._;
-        }
+    if (Array.isArray(ApptManualMoves.appt_manual_moves.appt_manual_move)) {
+      ApptManualMoves.appt_manual_moves.appt_manual_move.map(({ Field }) => {
+        const newItem: { [key: string]: string | undefined } = {};
+        Field.forEach((field) => {
+          if (
+            field.name === 'Condición de movimiento' ||
+            field.name === 'Discrepancia de aptitud laboral' ||
+            field.name === 'Discrepancia de zona de trabajo' ||
+            field.name === 'Enrutado automático a fecha' ||
+            field.name === 'Etiqueta de motivo de movimiento' ||
+            field.name === 'Hora de acción de movimiento' ||
+            field.name === 'ID de actividad' ||
+            field.name === 'Mover a fecha' ||
+            field.name === 'Mover de fecha' ||
+            field.name === 'Nombre de motivo de movimiento' ||
+            field.name === 'Nombre de usuario'
+          ) {
+            newItem[field.name] = field._;
+          }
+        });
+        json.push(newItem);
+        return newItem;
       });
-      json.push(newItem);
-      return newItem;
-    });
+    } else if (typeof ApptManualMoves.appt_manual_moves.appt_manual_move === 'object' && ApptManualMoves.appt_manual_moves.appt_manual_move !== null) {
+      const arrayFromObject: ApptManualMove[] = [];
+      arrayFromObject.push(ApptManualMoves.appt_manual_moves.appt_manual_move);
+      arrayFromObject.map(({ Field }) => {
+        const newItem: { [key: string]: string | undefined } = {};
+        Field.forEach((field) => {
+          if (
+            field.name === 'Condición de movimiento' ||
+            field.name === 'Discrepancia de aptitud laboral' ||
+            field.name === 'Discrepancia de zona de trabajo' ||
+            field.name === 'Enrutado automático a fecha' ||
+            field.name === 'Etiqueta de motivo de movimiento' ||
+            field.name === 'Hora de acción de movimiento' ||
+            field.name === 'ID de actividad' ||
+            field.name === 'Mover a fecha' ||
+            field.name === 'Mover de fecha' ||
+            field.name === 'Nombre de motivo de movimiento' ||
+            field.name === 'Nombre de usuario'
+          ) {
+            newItem[field.name] = field._;
+          }
+        });
+        json.push(newItem);
+        return newItem;
+      });
+    }
     return json;
   }
 

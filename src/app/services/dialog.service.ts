@@ -12,7 +12,7 @@ export class DialogService {
 
   constructor(private dialog: MatDialog) { }
 
-  error(error: Error): Observable<void> {
+  error(error: Error | string): Observable<void> {
     const dialogRef = this.dialog.open(ErrorDialogComponent, {
       data: error,
     });
@@ -40,8 +40,9 @@ export class DialogService {
     </h1>
     <mat-dialog-content>
       <span *ngIf="data; else unidentifiedError">
-        <p>{{data.name}}</p>
-        <p>{{data.message}}</p>
+        <p>{{data && data}}</p>
+        <p>{{data.name && data.name}}</p>
+        <p>{{data.message && data.message}}</p>
       </span>
       <ng-template #unidentifiedError>
         <p>Error no identificado</p>

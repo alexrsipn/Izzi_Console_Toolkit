@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
-  ApptManualMove,
+  ApptManualMove, expandItem,
   GetADailyExtractFileJSONResponse,
-  GetAListDailyExtractFilesDateResponse,
-  ListDailyExtractValidation,
+  GetAListDailyExtractFilesDateResponse, GetResourcesResponse,
+  ListDailyExtractValidation, Resource, workSkillItems,
 } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
@@ -18,13 +18,14 @@ import {
   reduce,
   switchMap,
   tap,
-  toArray,
+  toArray, Observable, delay,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
 import { parseStringPromise } from 'xml2js';
 import { ExportService } from './services/export.service';
 import { DialogService } from './services/dialog.service';
 import * as XLSX from 'xlsx';
+import {ResourceTreeService} from "./services/resource-tree.service";
 
 interface State {
   isLoading: boolean;
@@ -32,7 +33,9 @@ interface State {
   intervalDates: string[];
   listDailyExtract?: ListDailyExtractValidation[];
   validatedDates: string[];
-}
+  resourcesTreeResidencial?: Resource;
+  resourcesTreePyme?: Resource[];
+};
 
 const initialState: State = {
   isLoading: false,
@@ -41,7 +44,7 @@ const initialState: State = {
   validatedDates: [],
 };
 
-const chunkSize = 50000;
+/*const chunkSize = 50000;*/
 
 @Injectable({
   providedIn: 'root',
@@ -50,8 +53,9 @@ export class AppStore extends ComponentStore<State> {
   constructor(
     private readonly ofsPluginApi: OfsApiPluginService,
     private readonly ofsRestApi: OfsRestApiService,
-    private readonly exportService: ExportService,
-    private readonly dialogService: DialogService
+    /*private readonly exportService: ExportService,*/
+    private readonly dialogService: DialogService,
+    private readonly resourceTreeService: ResourceTreeService,
   ) {
     super(initialState);
     this.handleOpenMessage(this.ofsPluginApi.openMessage$);
@@ -65,14 +69,17 @@ export class AppStore extends ComponentStore<State> {
   );
 
   //View Model
-  public readonly vm$ = this.select(
+/*  public readonly vm$ = this.select(
     this.isLoading$,
     this.isDateRangeSelected,
-    (isLoading, isDateRangeSelected) => ({
+    (isLoading, isDateRangeSelected, resourcesTree) => ({
       isLoading,
       isDateRangeSelected,
+      resourcesTree,
     })
-  );
+  );*/
+
+  public readonly vm$ = this.select((state) => state)
 
   // Updaters
   readonly setSelectedRange = this.updater<DataRange>(
@@ -94,6 +101,14 @@ export class AppStore extends ComponentStore<State> {
     ...state,
     isLoading,
   }));
+  readonly setResourcesTreeResidencial = this.updater<Resource>((state, resourcesTreeResidencial) => ({
+    ...state,
+    resourcesTreeResidencial,
+  }));
+  readonly setResourcesTreePyme = this.updater<Resource[]>((state, resourcesTreePyme) => ({
+    ...state,
+    resourcesTreePyme,
+  }));
 
   // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
@@ -110,11 +125,13 @@ export class AppStore extends ComponentStore<State> {
           .setUrl(urlOFSC)
           .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
       }),
+      concatMap(() => this.ofsRestApi.getAllResources()),
+      concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
       tap(() => this.setIsLoading(false))
     )
   );
 
-  private readonly exportManualMoveReasons = this.effect(($) =>
+/*  private readonly exportManualMoveReasons = this.effect(($) =>
     $.pipe(
       tap(() => this.setIsLoading(true)),
       concatMap(() => this.listDailyExtract()),
@@ -125,14 +142,47 @@ export class AppStore extends ComponentStore<State> {
       tap((json) => this.exportByChunks(json)),
       tap(() => this.setIsLoading(false))
     )
-  );
+  );*/
+
+  private readonly residentialToPyme = this.effect(($) => $.pipe(
+    tap(() => this.setIsLoading(true)),
+    delay(3000),
+    tap(() => this.dialogService.success('Recursos movidos exitosamente a PYME')),
+    tap(() => this.setIsLoading(false)),
+  ));
+
+  private readonly pymeToResidential = this.effect(($) => $.pipe(
+    tap(() => this.setIsLoading(true)),
+    delay(3000),
+    /*tap(() => this.clearBuffer()),*/
+    tap(() => this.dialogService.success('Recursos movidos exitosamente a RESIDENCIAL')),
+    tap(() => this.setIsLoading(false)),
+  ));
 
   public sendCloseMessage = this.effect<Partial<Message>>((data$) =>
     data$.pipe(tap((data) => this.ofsPluginApi.close(data)))
   );
 
   // Actions
-  private exportByChunks(manualMoves: any[]) {
+  private handleResourcesTree(resourcesTreeRaw: Resource[]) {
+    const cleanResourcesTreeRaw = resourcesTreeRaw.filter((resource) => resource.status === 'active' && resource.organization === 'default');
+    const pymeTree = cleanResourcesTreeRaw.filter((resource) => resource.workSkills?.items && resource.workSkills?.items?.some(skill => skill.workSkill === 'PYME' && skill.endDate === undefined));
+    const idsPyme = new Set(pymeTree.map(r => r.resourceId));
+    const residencial = cleanResourcesTreeRaw.filter(resource => !idsPyme.has(resource.resourceId));
+    const residencialTree = this.resourceTreeService.buildTree(residencial);
+    residencialTree && this.setResourcesTreeResidencial(residencialTree!);
+    pymeTree && this.setResourcesTreePyme(pymeTree!);
+    return Promise.resolve(residencialTree);
+  };
+
+  public confirmMovement(pyme: boolean) {
+    const recursos = Math.floor(Math.random()*100);
+    pyme ?
+      this.dialogService.confirm('¿Seguro que deseas mover ' + recursos + ' recursos a PYME?').subscribe(result => result! && this.residentialToPyme())
+      :
+      this.dialogService.confirm('¿Seguro que deseas devolver ' + recursos + ' recursos a RESIDENCIAL?').subscribe(result => result! && this.pymeToResidential());
+  }
+/*  private exportByChunks(manualMoves: any[]) {
     from(manualMoves).pipe(
       bufferCount(chunkSize),
       concatMap((chunk) => {
@@ -167,7 +217,7 @@ export class AppStore extends ComponentStore<State> {
         this.clearBuffer();
       },
     });
-  }
+  }*/
 
   private listDailyExtract() {
     const { intervalDates } = this.get();
@@ -217,7 +267,7 @@ export class AppStore extends ComponentStore<State> {
     }
   }
 
-  public descargarRazones() {
+/*  public descargarRazones() {
     this.setIsLoading(true);
     const range = this.createRange();
     if (range.length > 16 && range.length < 0) {
@@ -228,6 +278,23 @@ export class AppStore extends ComponentStore<State> {
     } else {
       this.exportManualMoveReasons();
     }
+  }*/
+
+  public moveToPyme() {
+    this.setIsLoading(true);
+    setTimeout(() => {
+      this.setIsLoading(false);
+      alert("Recursos movidos a PyME");
+    }, 2000);
+  }
+
+  public moveToResidencial() {
+    this.setIsLoading(true);
+    setTimeout(() => {
+      this.setIsLoading(false);
+      alert("Recursos movidos a Residencial");
+    }, 2000);
+
   }
 
   private handleListDailyExtractFiles(
@@ -316,9 +383,21 @@ export class AppStore extends ComponentStore<State> {
   }
 
   private clearBuffer() {
-    this.setValidatedDates([]);
-    this.setIntervalDates([]);
-    this.setSelectedRange({ from: null, to: null, valid: false });
+    this.setResourcesTreePyme([]);
+    this.setResourcesTreeResidencial({
+      resourceId: '',
+      organization: '',
+      status: '',
+      parentResourceId: '',
+      resourceType: '',
+      name: '',
+      workSkills: undefined,
+      workSchedules: undefined,
+      links: undefined,
+      avatar: undefined,
+      children: [],
+      selected: false
+    });
   }
 
   private handleError(err: Error) {

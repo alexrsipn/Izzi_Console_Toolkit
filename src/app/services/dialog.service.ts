@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import {MAT_DIALOG_DATA, MatDialog, MatDialogModule} from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { Observable } from 'rxjs';
+import {CdkTrapFocus} from "@angular/cdk/a11y";
 
 @Injectable({
   providedIn: 'root'
@@ -21,6 +22,13 @@ export class DialogService {
 
   success(message: string): Observable<void> {
     const dialogRef = this.dialog.open(SuccessDialogComponent, {
+      data: message,
+    });
+    return dialogRef.afterClosed();
+  }
+
+  confirm(message: string): Observable<void> {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       data: message,
     });
     return dialogRef.afterClosed();
@@ -78,4 +86,24 @@ export class ErrorDialogComponent {
 })
 export class SuccessDialogComponent {
   constructor(@Inject(MAT_DIALOG_DATA) public data: Error) {}
+}
+
+@Component({
+  selector: 'app-confirm-dialog',
+  standalone: true,
+  imports: [MatIconModule, MatButtonModule, MatDialogModule],
+  template: `
+    <h2 mat-dialog-title>Confirmar movimiento de recursos</h2>
+    <mat-dialog-content>
+      <p>{{data}}</p>
+    </mat-dialog-content>
+    <mat-dialog-actions style="display: flex; justify-content: space-around; align-items: center">
+      <button style="width: 40%" mat-button mat-dialog-close [mat-dialog-close]="false">No</button>
+      <button style="width: 40%" mat-flat-button [mat-dialog-close]="true" color="primary" cdkFocusInitial>Si</button>
+    </mat-dialog-actions>
+  `
+})
+export class ConfirmDialogComponent {
+  constructor(@Inject(MAT_DIALOG_DATA) public data: Error) {
+  }
 }

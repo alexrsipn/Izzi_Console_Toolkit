@@ -1,0 +1,11 @@
+<ul style="padding: 0; list-style-type: none">
+  <li style="padding: 0; list-style-type: none">
+    <mat-checkbox color="primary" [(ngModel)]="resourceNode.selected" (change)="toggleSelection(resourceNode, resourceNode.selected!)"/>
+    <span #tooltip="matTooltip" matTooltip="{{resourceNode.resourceId}} - {{resourceNode.resourceType}}">{{resourceNode.name}}</span>
+    <ul *ngIf="resourceNode.children?.length">
+      <ng-container *ngFor="let child of resourceNode.children">
+        <app-resource-tree [resourceNode]="child"></app-resource-tree>
+      </ng-container>
+    </ul>
+  </li>
+</ul>

@@ -1,0 +1,59 @@
+<section style="display: flex; justify-content: space-around; align-items: center; flex-direction: column; width: 100%; height: 80%">
+  <ng-container *ngIf="vm$ | async as vm">
+    <ng-container *ngIf="vm.resourcesTreePyme">
+      <div style="width: 70%; max-width: 80%; margin: 0; padding: 0;">
+        <mat-form-field style="width: 100%">
+          <mat-label>Búsqueda <mat-icon>search</mat-icon></mat-label>
+          <input matInput type="search" [(ngModel)]="value">
+        </mat-form-field>
+      </div>
+      <div style="width: 70%; max-width: 80%; overflow-y: auto; max-height: 70%">
+        <mat-card appearance="raised">
+          <mat-card-content>
+            <span>
+                <ul>
+                  @for (resource of vm.resourcesTreePyme; track resource; let i = $index) {
+                    <li style="list-style: none">
+                      <mat-checkbox #tooltip="matTooltip" matTooltip="{{resource.resourceId}} - {{resource.resourceType}}">{{resource.name}}</mat-checkbox>
+                      <!--<span #tooltip="matTooltip" matTooltip="{{resource.resourceId}} - {{resource.resourceType}}"></span>-->
+                    </li>
+                  }
+                </ul>
+              </span>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div style="width: 70%; max-width: 80%">
+        <mat-card>
+          <mat-card-header>
+            <div style="display: flex; justify-content: space-around; align-items: center; padding: 1rem 0; width: 100%;">
+              <span>Restaurar aptitudes</span>
+              <mat-slide-toggle [checked]="true" color="accent"></mat-slide-toggle>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Se restaurarán las últimas aptitudes laborales archivadas de cada recurso</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <!--</ng-container>-->
+    </ng-container>
+  </ng-container>
+<!--  <div style="width: 70%; max-width: 80%;">
+    <mat-card appearance="raised">
+      <mat-card-header>
+        <mat-form-field style="width: 100%">
+          <mat-label>Búsqueda <mat-icon>search</mat-icon></mat-label>
+          <input matInput type="search" [(ngModel)]="value">
+        </mat-form-field>
+      </mat-card-header>
+      <mat-card-content style="overflow-y: auto; max-height: 10rem">
+        <div style="display: flex; flex-direction: column;">
+          @for (resource of resources; track resource; let i = $index) {
+            <span #tooltip="matTooltip" matTooltip="Zona de trabajo"><mat-checkbox>{{resource.name}} | {{resource.endDate}} | {{resource.workZones}}</mat-checkbox></span>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>-->
+</section>

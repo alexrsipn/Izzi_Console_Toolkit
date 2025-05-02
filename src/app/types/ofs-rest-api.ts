@@ -38,7 +38,7 @@ export interface workSkillItem {
   workSkill: string;
   ratio: number;
   startDate: string;
-  endDate: string;
+  endDate?: string;
 }
 
 export interface expandItem {
@@ -48,6 +48,31 @@ export interface expandItem {
 export interface links {
   rel: string;
   href: string;
+}
+
+export interface SetWorkSkillReqBodyParams {
+  endDate?: string,
+  ratio: number,
+  startDate?: string,
+  workSkill: string
+}
+
+export interface SetWorkSkillResponse {
+  items: SetWorkSkillReqBodyParams[],
+  links: links[],
+  totalResults: number
+}
+
+export interface resourcesToSetWorkskills {
+  resourceId: string,
+  workSkills: workSkills[]
+}
+
+export interface workSkills {
+  workSkill: string,
+  ratio: number,
+  startDate: string,
+  endDate?: string
 }
 
 export interface GetDailyExtractFilesDateReqParams {

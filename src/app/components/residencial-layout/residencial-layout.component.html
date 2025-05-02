@@ -7,7 +7,7 @@
           <input matInput type="search" [(ngModel)]="value">
         </mat-form-field>
       </div>
-      <div style="width: 70%; max-width: 80%; overflow-y: auto; max-height: 70%">
+      <div style="width: 70%; max-width: 80%; overflow-y: auto; max-height: 50%">
         <mat-card appearance="raised">
           <mat-card-content>
             <div *ngIf="vm.resourcesTreeResidencial" style="padding: 0 1rem">
@@ -16,10 +16,11 @@
           </mat-card-content>
         </mat-card>
       </div>
-<!--      <div style="width: 70%; max-width: 80%">
+      <div style="width: 70%; max-width: 80%">
         <mat-card appearance="raised">
           <mat-card-content>
-            <mat-form-field style="width: 100%">
+            <app-control-date (rangeChange)="store.setSelectedRange($event)"></app-control-date>
+<!--            <mat-form-field style="width: 100%">
               <mat-label>Inicio - Fin</mat-label>
               <mat-date-range-input [rangePicker]="picker">
                 <input matStartDate placeholder="Inicio">
@@ -28,10 +29,10 @@
               <mat-hint>MM/DD/YYYY – MM/DD/YYYY</mat-hint>
               <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
               <mat-date-range-picker #picker></mat-date-range-picker>
-            </mat-form-field>
+            </mat-form-field>-->
           </mat-card-content>
         </mat-card>
-      </div>-->
+      </div>
     </ng-container>
   </ng-container>
 </section>

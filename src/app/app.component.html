@@ -36,11 +36,11 @@
         <app-residencial-layout/>
       </div>
       <div style="display: flex; justify-content: space-around; align-items: center; flex-direction: column; width: 15%; height: 100%;">
-        <button mat-flat-button color="primary" style="display: flex; flex-direction: column-reverse; height: 3rem" (click)="store.confirmMovement(true)">
+        <button mat-flat-button color="primary" style="display: flex; flex-direction: column-reverse; height: 3rem" (click)="store.confirmMovement(true)" [disabled]="!vm.selectedRange.valid || vm.selectedResidential.length === 0">
           <span>Mover a PyME</span>
           <mat-icon>fast_forward</mat-icon>
         </button>
-        <button mat-flat-button color="primary" style="display: flex; flex-direction: column-reverse; height: 3rem" (click)="store.confirmMovement(false)">
+        <button mat-flat-button color="accent" style="display: flex; flex-direction: column-reverse; height: 3rem" (click)="store.confirmMovement(false)" [disabled]="vm.selectedPyme.length === 0">
           <span>Mover a Residencial</span>
           <mat-icon>fast_rewind</mat-icon>
         </button>

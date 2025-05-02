@@ -2,7 +2,11 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {
   GetDailyExtractFilesDateReqParams,
-  GetAListDailyExtractFilesDateResponse, GetResourcesResponse, GetResourcesReqQueryParams, Resource,
+  GetAListDailyExtractFilesDateResponse,
+  GetResourcesResponse,
+  GetResourcesReqQueryParams,
+  Resource,
+  SetWorkSkillReqBodyParams, SetWorkSkillResponse, resourcesToSetWorkskills,
 } from '../types/ofs-rest-api';
 import {forkJoin, map, mergeMap, Observable, of, tap} from "rxjs";
 
@@ -61,6 +65,39 @@ export class OfsRestApiService {
       map((responses) => responses.reduce<Resource[]>((acc, elem) => [...acc, ...elem.items], []))
     );
   };
+
+  setWorkSkills(resource: resourcesToSetWorkskills) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resource.resourceId}/workSkills`;
+    const headers = new HttpHeaders({
+      Authorization: `Basic ${btoa(
+        this.credentials.user + ':' + this.credentials.pass
+      )}`
+    });
+    const data = [
+      {
+        "workSkill": "PYME",
+        "ratio": 100,
+        "startDate": "2025-04-25",
+        "endDate": "2025-04-25"
+      },
+      {
+        "workSkill": "INST",
+        "ratio": 100,
+        "startDate": "2025-04-26"
+      },
+      {
+        "workSkill": "TC",
+        "ratio": 100,
+        "startDate": "2025-04-26"
+      },
+      {
+        "workSkill": "WIFI",
+        "ratio": 100,
+        "startDate": "2025-04-26"
+      }
+    ];
+    return this.http.post<SetWorkSkillResponse>(endpoint, resource.workSkills, {headers});
+  }
 
   getAListOfDailyExtractFiles(selectedRange: string[]) {
     selectedRange.map((date) => {

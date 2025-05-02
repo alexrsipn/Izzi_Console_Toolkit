@@ -11,6 +11,7 @@ import {AppStore} from "../../app.store";
 import {AsyncPipe, NgForOf, NgIf} from "@angular/common";
 import {Resource} from "../../types/ofs-rest-api";
 import {ResourceTreeComponent} from "../resource-tree/resource-tree.component";
+import {ControlDateComponent} from "../control-date/control-date.component";
 
 /*export interface Node {
   name: string;
@@ -21,7 +22,7 @@ import {ResourceTreeComponent} from "../resource-tree/resource-tree.component";
 @Component({
   selector: 'app-residencial-layout',
   standalone: true,
-  imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, NgForOf, ResourceTreeComponent],
+  imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, NgForOf, ResourceTreeComponent, ControlDateComponent],
   templateUrl: './residencial-layout.component.html',
   providers: [provideNativeDateAdapter()],
   changeDetection: ChangeDetectionStrategy.OnPush

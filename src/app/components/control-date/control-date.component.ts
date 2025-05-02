@@ -65,12 +65,10 @@ export class ControlDateComponent {
   });
 
   dateFilter = (d: Date | null): boolean => {
-    // let yesterdayMoment = moment().subtract(1, 'days');
-    let yesterdayMoment = moment();
-    let pastMoment = moment().subtract(90, 'days');
-    const yesterday = new Date(yesterdayMoment.format('YYYY-MM-DD'));
-    const past = new Date(pastMoment.format('YYYY-MM-DD'));
-    return d ? d < yesterday && d > past : false;
+    const futureMoment = moment().add(90, 'days');
+    const today = new Date(moment().format('YYYY-MM-DD'));
+    const future = new Date(futureMoment.format('YYYY-MM-DD'));
+    return d ? d >= today && d < future : false;
   };
 
   @Output() rangeChange = this.range.valueChanges.pipe(

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
-  ApptManualMove, expandItem,
+  ApptManualMove,
   GetADailyExtractFileJSONResponse,
-  GetAListDailyExtractFilesDateResponse, GetResourcesResponse,
-  ListDailyExtractValidation, Resource, workSkillItems,
+  GetAListDailyExtractFilesDateResponse,
+  ListDailyExtractValidation, Resource, resourcesToSetWorkskills, workSkillItem, workSkillItems, workSkills,
 } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
@@ -11,21 +11,17 @@ import { OfsRestApiService } from './services/ofs-rest-api.service';
 import { Message } from './types/plugin-api';
 import {
   EMPTY,
-  bufferCount,
   concatMap,
   from,
   map,
-  reduce,
-  switchMap,
   tap,
-  toArray, Observable, delay,
+  toArray, switchMap, of,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
 import { parseStringPromise } from 'xml2js';
-import { ExportService } from './services/export.service';
 import { DialogService } from './services/dialog.service';
-import * as XLSX from 'xlsx';
 import {ResourceTreeService} from "./services/resource-tree.service";
+import dayjs from 'dayjs';
 
 interface State {
   isLoading: boolean;
@@ -35,13 +31,17 @@ interface State {
   validatedDates: string[];
   resourcesTreeResidencial?: Resource;
   resourcesTreePyme?: Resource[];
-};
+  selectedResidential: Resource[];
+  selectedPyme: Resource[];
+}
 
 const initialState: State = {
   isLoading: false,
   selectedRange: { from: null, to: null, valid: false },
   intervalDates: [],
   validatedDates: [],
+  selectedResidential: [],
+  selectedPyme: []
 };
 
 /*const chunkSize = 50000;*/
@@ -69,7 +69,7 @@ export class AppStore extends ComponentStore<State> {
   );
 
   //View Model
-/*  public readonly vm$ = this.select(
+/*public readonly vm$ = this.select(
     this.isLoading$,
     this.isDateRangeSelected,
     (isLoading, isDateRangeSelected, resourcesTree) => ({
@@ -109,6 +109,62 @@ export class AppStore extends ComponentStore<State> {
     ...state,
     resourcesTreePyme,
   }));
+  readonly toggleResidentialSelection = this.updater((state, {resource, isSelected}: {resource: Resource, isSelected: boolean}) => {
+    let updatedSelectedResources: Resource[];
+
+    if (isSelected) {
+      const exists = state.selectedResidential.some(r => r.resourceId === resource.resourceId);
+      if (!exists) {
+        updatedSelectedResources = [...state.selectedResidential, resource];
+      } else {
+        updatedSelectedResources = state.selectedResidential;
+      }
+    } else {
+      updatedSelectedResources = state.selectedResidential.filter(r => r.resourceId !== resource.resourceId)
+    }
+
+    return {
+      ...state,
+      selectedResidential: updatedSelectedResources
+    }
+  });
+  readonly togglePymeSelection = this.updater((state, {resource, isSelected}: {resource: Resource, isSelected: boolean}) => {
+    let updatedSelectedResources: Resource[];
+
+    if (isSelected) {
+      const exists = state.selectedPyme.some(r => r.resourceId === resource.resourceId);
+      if (!exists) {
+        updatedSelectedResources = [...state.selectedPyme, resource];
+      } else {
+        updatedSelectedResources = state.selectedPyme;
+      }
+    } else {
+      updatedSelectedResources = state.selectedPyme.filter(r => r.resourceId !== resource.resourceId)
+    }
+
+    return {
+      ...state,
+      selectedPyme: updatedSelectedResources
+    }
+  });
+  readonly  setSelectedResourcesResidencial = this.updater<Resource[]>((state, selectedResidential) => ({
+    ...state,
+    selectedResidential
+  }));
+/*  readonly updateResourceSelection = this.updater((state, resourcesSelectedResidential: Resource | null) => {
+    const findAndUpdateNode = (node: Resource | null) => {
+      if (!node) return null;
+
+      let newNode = {...node};
+
+      const duplicado = this.get().resourcesSelectedResidential?.find((resource) => resource.resourceId === newNode.resourceId);
+      console.log(duplicado);
+
+      return {
+        ...state,
+        resourcesSelectedResidential
+    }
+  })*/
 
   // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
@@ -125,9 +181,18 @@ export class AppStore extends ComponentStore<State> {
           .setUrl(urlOFSC)
           .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
       }),
+      /*concatMap(async () => this.getResourcesTreeRaw()),*/
       concatMap(() => this.ofsRestApi.getAllResources()),
       concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
       tap(() => this.setIsLoading(false))
+    )
+  );
+
+  private readonly getResourcesTreeRaw = this.effect(($) =>
+    $.pipe(
+      concatMap(() => this.ofsRestApi.getAllResources()),
+      concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
+      tap(() => Promise.resolve())
     )
   );
 
@@ -146,16 +211,39 @@ export class AppStore extends ComponentStore<State> {
 
   private readonly residentialToPyme = this.effect(($) => $.pipe(
     tap(() => this.setIsLoading(true)),
-    delay(3000),
+    /*concatMap(() => this.ofsRestApi.setWorkSkills('TEC3', [])),*/
+    map(() => this.handleWorkSkillsToPyme(this.get().selectedResidential)),
+    concatMap((resource) => this.ofsRestApi.setWorkSkills(resource[0])),
+    tap(() => this.clearBuffer()),
+    /*tap(() => this.getResourcesTreeRaw()),*/
     tap(() => this.dialogService.success('Recursos movidos exitosamente a PYME')),
+    concatMap(() => this.ofsRestApi.getAllResources()),
+    concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
     tap(() => this.setIsLoading(false)),
   ));
 
   private readonly pymeToResidential = this.effect(($) => $.pipe(
     tap(() => this.setIsLoading(true)),
-    delay(3000),
-    /*tap(() => this.clearBuffer()),*/
+    /*delay(3000),*/
+    map(() => this.handleWorkSkillsToResidential(this.get().selectedPyme)),
+    switchMap(resources => {
+      const invalidResource = resources.some(resource => resource.workSkills.length === 0);
+      if (invalidResource) {
+        this.dialogService.error(`Error: Un recurso seleccionado no cuenta con habilidades para restaurar.`);
+        this.setIsLoading(false);
+        this.clearBuffer();
+        this.getResourcesTreeRaw();
+        return EMPTY;
+      }
+      else {
+        return of(resources);
+      }
+    }),
+    concatMap((resource) => this.ofsRestApi.setWorkSkills(resource[0])),
+    tap(() => this.clearBuffer()),
     tap(() => this.dialogService.success('Recursos movidos exitosamente a RESIDENCIAL')),
+    concatMap(() => this.ofsRestApi.getAllResources()),
+    concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
     tap(() => this.setIsLoading(false)),
   ));
 
@@ -165,8 +253,11 @@ export class AppStore extends ComponentStore<State> {
 
   // Actions
   private handleResourcesTree(resourcesTreeRaw: Resource[]) {
-    const cleanResourcesTreeRaw = resourcesTreeRaw.filter((resource) => resource.status === 'active' && resource.organization === 'default');
-    const pymeTree = cleanResourcesTreeRaw.filter((resource) => resource.workSkills?.items && resource.workSkills?.items?.some(skill => skill.workSkill === 'PYME' && skill.endDate === undefined));
+    const cleanResourcesTreeRaw = resourcesTreeRaw.filter((resource) =>
+      resource.status === 'active' && resource.organization === 'default');
+    const pymeTree = cleanResourcesTreeRaw.filter((resource) =>
+      resource.workSkills?.items &&
+      resource.workSkills?.items?.some(skill => skill.workSkill === 'PYME' && dayjs(skill.endDate)>=dayjs()));
     const idsPyme = new Set(pymeTree.map(r => r.resourceId));
     const residencial = cleanResourcesTreeRaw.filter(resource => !idsPyme.has(resource.resourceId));
     const residencialTree = this.resourceTreeService.buildTree(residencial);
@@ -178,9 +269,9 @@ export class AppStore extends ComponentStore<State> {
   public confirmMovement(pyme: boolean) {
     const recursos = Math.floor(Math.random()*100);
     pyme ?
-      this.dialogService.confirm('¿Seguro que deseas mover ' + recursos + ' recursos a PYME?').subscribe(result => result! && this.residentialToPyme())
+      this.dialogService.confirm('¿Seguro que deseas mover ' + this.get().selectedResidential.length + ' recursos a PYME?').subscribe(result => result! && this.residentialToPyme())
       :
-      this.dialogService.confirm('¿Seguro que deseas devolver ' + recursos + ' recursos a RESIDENCIAL?').subscribe(result => result! && this.pymeToResidential());
+      this.dialogService.confirm('¿Seguro que deseas devolver ' + this.get().selectedPyme.length + ' recursos a RESIDENCIAL?').subscribe(result => result! && this.pymeToResidential());
   }
 /*  private exportByChunks(manualMoves: any[]) {
     from(manualMoves).pipe(
@@ -382,22 +473,91 @@ export class AppStore extends ComponentStore<State> {
     return json;
   }
 
+  private handleWorkSkillsToPyme(selectedResources: Resource[]): resourcesToSetWorkskills[] {
+    const {selectedRange} = this.get();
+    const oneDayAfter = dayjs(selectedRange.to).add(1, 'day').format("YYYY-MM-DD");
+    return selectedResources.map(resource => {
+      if (!resource.workSkills?.items || resource.workSkills.items.length === 0) {
+        return {
+          resourceId: resource.resourceId,
+          workSkills: []
+        }
+      }
+
+      /*const latestSkillsMap = new Map<string, workSkillItem>();*/
+      const skillsMap = new Map<string, workSkillItem>();
+
+      resource.workSkills.items.forEach(skill => !skill.endDate && skillsMap.set(skill.workSkill, skill));
+/*      resource.workSkills.items.forEach(skill => {
+        const existingSkill = latestSkillsMap.get(skill.workSkill);
+        if (!existingSkill || dayjs(skill.startDate).isAfter(dayjs(existingSkill.startDate))) {
+          latestSkillsMap.set(skill.workSkill, skill)
+        }
+      });*/
+
+/*      const filteredSkills: workSkills[] = Array.from(latestSkillsMap.values()).map(item => ({
+        workSkill: item.workSkill,
+        ratio: item.ratio,
+        startDate: item.startDate,
+        endDate: item.endDate
+      }));*/
+
+      const workSkills: workSkills[] = Array.from(skillsMap.values()).map(item => ({
+        workSkill: item.workSkill,
+        ratio: item.ratio,
+        startDate: oneDayAfter
+      }));
+
+      workSkills.push({
+        workSkill: 'PYME',
+        ratio: 100,
+        startDate: selectedRange.from!,
+        endDate: selectedRange.to!
+      });
+
+      const resourceData: resourcesToSetWorkskills = {
+        resourceId: resource.resourceId,
+        workSkills: workSkills
+      };
+      return resourceData;
+    }).filter(resourceData => resourceData.workSkills.length > 0);
+  }
+
+  private handleWorkSkillsToResidential(selectedResources: Resource[]): resourcesToSetWorkskills[] {
+    const today = dayjs();
+
+    return selectedResources.map(resource => {
+      if (!resource.workSkills?.items || resource.workSkills.items.length === 0) {
+        return {
+          resourceId: resource.resourceId,
+          workSkills: []
+        }
+    }
+
+      const skillsMap = new Map<string, workSkillItem>();
+      resource.workSkills.items.forEach(skill => skill.workSkill !== 'PYME' && skillsMap.set(skill.workSkill, skill));
+
+      const workSkills: workSkills[] = Array.from(skillsMap.values()).map(item => ({
+        workSkill: item.workSkill,
+        ratio: item.ratio,
+        startDate: today.format('YYYY-MM-DD')
+      }));
+
+      const resourceData: resourcesToSetWorkskills = {
+        resourceId: resource.resourceId,
+        workSkills: workSkills
+      };
+
+      return resourceData;
+    }).filter(resourceData => resourceData.workSkills.length > 0);
+  }
+
   private clearBuffer() {
-    this.setResourcesTreePyme([]);
-    this.setResourcesTreeResidencial({
-      resourceId: '',
-      organization: '',
-      status: '',
-      parentResourceId: '',
-      resourceType: '',
-      name: '',
-      workSkills: undefined,
-      workSchedules: undefined,
-      links: undefined,
-      avatar: undefined,
-      children: [],
-      selected: false
-    });
+    this.patchState({selectedResidential: []});
+    this.patchState({selectedPyme: []});
+    this.patchState({resourcesTreeResidencial: undefined});
+    this.patchState(({resourcesTreePyme: undefined}));
+    this.setSelectedRange({from: null, to: null, valid: false});
   }
 
   private handleError(err: Error) {

@@ -14,7 +14,7 @@
                 <ul>
                   @for (resource of vm.resourcesTreePyme; track resource; let i = $index) {
                     <li style="list-style: none">
-                      <mat-checkbox #tooltip="matTooltip" matTooltip="{{resource.resourceId}} - {{resource.resourceType}}">{{resource.name}}</mat-checkbox>
+                      <mat-checkbox color="accent" #tooltip="matTooltip" matTooltip="{{resource.resourceId}} - {{resource.resourceType}}" [(ngModel)]="resource.selected" [checked]="resource.selected" (change)="onSelectionChange($event, resource)" [disabled]="vm.selectedResidential.length>0">{{resource.name}}</mat-checkbox>
                       <!--<span #tooltip="matTooltip" matTooltip="{{resource.resourceId}} - {{resource.resourceType}}"></span>-->
                     </li>
                   }
@@ -23,7 +23,7 @@
           </mat-card-content>
         </mat-card>
       </div>
-      <div style="width: 70%; max-width: 80%">
+<!--      <div style="width: 70%; max-width: 80%">
         <mat-card>
           <mat-card-header>
             <div style="display: flex; justify-content: space-around; align-items: center; padding: 1rem 0; width: 100%;">
@@ -35,7 +35,7 @@
             <p>Se restaurarán las últimas aptitudes laborales archivadas de cada recurso</p>
           </mat-card-content>
         </mat-card>
-      </div>
+      </div>-->
       <!--</ng-container>-->
     </ng-container>
   </ng-container>

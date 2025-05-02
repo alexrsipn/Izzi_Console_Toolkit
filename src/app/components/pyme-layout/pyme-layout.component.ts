@@ -1,5 +1,5 @@
 import {Component, signal} from '@angular/core';
-import {MatCheckboxModule} from "@angular/material/checkbox";
+import {MatCheckboxChange, MatCheckboxModule} from "@angular/material/checkbox";
 import {FormsModule} from "@angular/forms";
 import {MatCardModule} from "@angular/material/card";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
@@ -9,12 +9,7 @@ import {MatInput} from "@angular/material/input";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {AppStore} from "../../app.store";
 import {AsyncPipe, NgIf} from "@angular/common";
-
-export interface Node {
-  name: string;
-  endDate: string;
-  workZones: string;
-}
+import {Resource} from "../../types/ofs-rest-api";
 
 @Component({
   selector: 'app-pyme-layout',
@@ -31,32 +26,8 @@ export class PymeLayoutComponent {
 
   value = "";
 
-  resources:Node[] = [];
-
-  readonly node = signal<Node>({
-    name: 'Recurso',
-    endDate: '28/03/2024',
-    workZones: "MERIDA"
-  });
-
-  ngOnInit(): void {
-    for (let i = 0; i < 10; i++) {
-      this.resources.push({
-        name: `Recurso ${i}`,
-        endDate: '28/03/2024',
-        workZones: `Zona ${i}`
-      })
-    }
+  onSelectionChange(event: MatCheckboxChange, resourceNode: Resource): void {
+    const isSelected = event.checked;
+    this.store.togglePymeSelection({resource: resourceNode, isSelected});
   }
-
-/*  update(completed: boolean, index?: number) {
-    this.node.update(node => {
-      if (index === undefined) {
-        node.name = "Resource";
-      } else {
-        node.subNode![index].value = "Modificado";
-      }
-      return {...node}
-    })
-  }*/
 }

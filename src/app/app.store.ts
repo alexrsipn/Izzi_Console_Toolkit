@@ -224,11 +224,12 @@ export class AppStore extends ComponentStore<State> {
 
   private readonly pymeToResidential = this.effect(($) => $.pipe(
     tap(() => this.setIsLoading(true)),
-    /*delay(3000),*/
     map(() => this.handleWorkSkillsToResidential(this.get().selectedPyme)),
     switchMap(resources => {
-      const invalidResource = resources.some(resource => resource.workSkills.length === 0);
-      if (invalidResource) {
+      const hasInvalidResource = resources.some(resource => resource.workSkills.length === 0);
+      console.log(resources);
+      console.log(hasInvalidResource);
+      if (hasInvalidResource) {
         this.dialogService.error(`Error: Un recurso seleccionado no cuenta con habilidades para restaurar.`);
         this.setIsLoading(false);
         this.clearBuffer();
@@ -370,23 +371,6 @@ export class AppStore extends ComponentStore<State> {
       this.exportManualMoveReasons();
     }
   }*/
-
-  public moveToPyme() {
-    this.setIsLoading(true);
-    setTimeout(() => {
-      this.setIsLoading(false);
-      alert("Recursos movidos a PyME");
-    }, 2000);
-  }
-
-  public moveToResidencial() {
-    this.setIsLoading(true);
-    setTimeout(() => {
-      this.setIsLoading(false);
-      alert("Recursos movidos a Residencial");
-    }, 2000);
-
-  }
 
   private handleListDailyExtractFiles(
     dailyExtractFilesList: GetAListDailyExtractFilesDateResponse[]
@@ -549,7 +533,8 @@ export class AppStore extends ComponentStore<State> {
       };
 
       return resourceData;
-    }).filter(resourceData => resourceData.workSkills.length > 0);
+    });
+      /*.filter(resourceData => resourceData.workSkills.length > 0);*/
   }
 
   private clearBuffer() {

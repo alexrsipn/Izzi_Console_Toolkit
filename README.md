@@ -1,6 +1,6 @@
 # Introducción
 
-El desarrollo consiste en la generación de una webapp, en Angular 18, que se debe ejecutar como un plugin dentro de Oracle Field Service (OFS), para exportar las razones de movimiento manual en formato XLSX, provenientes del Daily Extract.
+El desarrollo consiste en la generación de una webapp, en Angular 18, que se debe ejecutar como un plugin dentro de Oracle Field Service (OFS), para facilitar el intercambio de técnicos entre Izzi Residencial e Izzi PyME, por requerimiento de usuario.
 
 ## Configuración Externa En OFSC Requerida
 
@@ -8,9 +8,9 @@ Se requiere establecer los siguien tes parámetros en la configuración del plug
 
 ### En la sección ”General Information” o “Información General”
 
-- Name (Spanish): Exportar razones de movimiento manual
-- Name (English): Exportar razones de movimiento manual
-- Label: plugin_manualmoves
+- Name (Spanish): Intercambio de técnicos Residencial-PyME
+- Name (English): Intercambio de técnicos Residencial-PyME
+- Label: plugin_residentialpyme
 - Entity: -
 - Visibility Rules similar to: -
 
@@ -19,7 +19,7 @@ Se requiere establecer los siguien tes parámetros en la configuración del plug
 - Type: Archivo de plugin
 - Plugin Archivo: Cargar el archivo .zip generado
 - Disable plugin in offline: No seleccionado (aunque debe considerarse que en caso de que el plugin consuma servicios de internet, no podrá funcionar)
-- Secure parameters: ofscRestClientId, ofscRestClientId y urlOFSC
+- Secure parameters: ofscRestClientId, ofscRestSecretId, urlOFSC y usersOfsc. 
 
 ### En la sección “Available Properties” o “Propiedades Disponibles”:
 

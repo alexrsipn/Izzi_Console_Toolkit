@@ -16,7 +16,7 @@ import {ControlDateComponent} from "../control-date/control-date.component";
 @Component({
   selector: 'app-residencial-layout',
   standalone: true,
-  imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, NgForOf, ResourceTreeComponent, ControlDateComponent],
+  imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, ResourceTreeComponent, ControlDateComponent],
   templateUrl: './residencial-layout.component.html',
   providers: [provideNativeDateAdapter()],
   changeDetection: ChangeDetectionStrategy.OnPush

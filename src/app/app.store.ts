@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import {
-  ApptManualMove,
-  GetADailyExtractFileJSONResponse,
-  GetAListDailyExtractFilesDateResponse,
-  ListDailyExtractValidation, Resource, resourcesToSetWorkskills, workSkillItem, workSkillItems, workSkills,
+  GetACalendarResponseFormatted,
+  Resource,
+  resourcesToSetWorkskills,
+  workSkillItem,
+  workSkills,
 } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
@@ -12,13 +13,11 @@ import { Message } from './types/plugin-api';
 import {
   EMPTY,
   concatMap,
-  from,
   map,
   tap,
-  toArray, switchMap, of,
+  switchMap, of,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
-import { parseStringPromise } from 'xml2js';
 import { DialogService } from './services/dialog.service';
 import {ResourceTreeService} from "./services/resource-tree.service";
 import dayjs from 'dayjs';
@@ -27,7 +26,6 @@ interface State {
   isLoading: boolean;
   selectedRange: DataRange;
   intervalDates: string[];
-  listDailyExtract?: ListDailyExtractValidation[];
   validatedDates: string[];
   resourcesTreeResidencial?: Resource;
   resourcesTreePyme?: Resource[];
@@ -44,8 +42,6 @@ const initialState: State = {
   selectedPyme: []
 };
 
-/*const chunkSize = 50000;*/
-
 @Injectable({
   providedIn: 'root',
 })
@@ -53,7 +49,6 @@ export class AppStore extends ComponentStore<State> {
   constructor(
     private readonly ofsPluginApi: OfsApiPluginService,
     private readonly ofsRestApi: OfsRestApiService,
-    /*private readonly exportService: ExportService,*/
     private readonly dialogService: DialogService,
     private readonly resourceTreeService: ResourceTreeService,
   ) {
@@ -64,38 +59,13 @@ export class AppStore extends ComponentStore<State> {
 
   // Selectors
   private readonly isLoading$ = this.select((state) => state.isLoading);
-  private readonly isDateRangeSelected = this.select(
-    (state) => state.selectedRange
-  );
 
   //View Model
-/*public readonly vm$ = this.select(
-    this.isLoading$,
-    this.isDateRangeSelected,
-    (isLoading, isDateRangeSelected, resourcesTree) => ({
-      isLoading,
-      isDateRangeSelected,
-      resourcesTree,
-    })
-  );*/
-
   public readonly vm$ = this.select((state) => state)
 
   // Updaters
   readonly setSelectedRange = this.updater<DataRange>(
     (state, selectedRange) => ({ ...state, selectedRange })
-  );
-  readonly setIntervalDates = this.updater<string[]>(
-    (state, intervalDates) => ({
-      ...state,
-      intervalDates,
-    })
-  );
-  readonly setValidatedDates = this.updater<string[]>(
-    (state, validatedDates) => ({
-      ...state,
-      validatedDates,
-    })
   );
   readonly setIsLoading = this.updater<boolean>((state, isLoading) => ({
     ...state,
@@ -147,41 +117,30 @@ export class AppStore extends ComponentStore<State> {
       selectedPyme: updatedSelectedResources
     }
   });
-  readonly  setSelectedResourcesResidencial = this.updater<Resource[]>((state, selectedResidential) => ({
-    ...state,
-    selectedResidential
-  }));
-/*  readonly updateResourceSelection = this.updater((state, resourcesSelectedResidential: Resource | null) => {
-    const findAndUpdateNode = (node: Resource | null) => {
-      if (!node) return null;
-
-      let newNode = {...node};
-
-      const duplicado = this.get().resourcesSelectedResidential?.find((resource) => resource.resourceId === newNode.resourceId);
-      console.log(duplicado);
-
-      return {
-        ...state,
-        resourcesSelectedResidential
-    }
-  })*/
 
   // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
     $.pipe(
       tap(() => this.setIsLoading(true)),
-      map(({ securedData }) => {
-        const { ofscRestClientId, ofscRestSecretId, urlOFSC } = securedData;
+      map(({ securedData, user }) => {
+        const { ofscRestClientId, ofscRestSecretId, urlOFSC, usersOfsc } = securedData;
+        const { ulogin } = user;
         if (!ofscRestClientId || !ofscRestClientId || !urlOFSC) {
           throw new Error(
             'Los campos url, user y pass son requeridos para el correcto funcionamiento del plugin'
           );
         }
-        this.ofsRestApi
-          .setUrl(urlOFSC)
-          .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
+        const validLogin = this.login(ulogin, usersOfsc);
+        if (validLogin) {
+          this.ofsRestApi
+            .setUrl(urlOFSC)
+            .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
+        } else {
+          this.dialogService.invalid("Usuario sin permisos para acceder al plugin");
+          EMPTY;
+        }
       }),
-      /*concatMap(async () => this.getResourcesTreeRaw()),*/
+      concatMap(async () => this.getResourcesTreeRaw()),
       concatMap(() => this.ofsRestApi.getAllResources()),
       concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
       tap(() => this.setIsLoading(false))
@@ -196,27 +155,14 @@ export class AppStore extends ComponentStore<State> {
     )
   );
 
-/*  private readonly exportManualMoveReasons = this.effect(($) =>
-    $.pipe(
-      tap(() => this.setIsLoading(true)),
-      concatMap(() => this.listDailyExtract()),
-      tap((response) => this.handleListDailyExtractFiles(response)),
-      concatMap(() => this.dailyExtractFile()),
-      switchMap((response) => this.handleDailyExtractFile(response)),
-      concatMap((json) => this.handleJsonBody(json)),
-      tap((json) => this.exportByChunks(json)),
-      tap(() => this.setIsLoading(false))
-    )
-  );*/
-
   private readonly residentialToPyme = this.effect(($) => $.pipe(
     tap(() => this.setIsLoading(true)),
-    /*concatMap(() => this.ofsRestApi.setWorkSkills('TEC3', [])),*/
     map(() => this.handleWorkSkillsToPyme(this.get().selectedResidential)),
     concatMap((resource) => this.ofsRestApi.setWorkSkills(resource[0])),
+    switchMap(() => this.calendarResource(true)),
+    tap(() => this.dialogService.success(`Recursos movidos exitosamente a PYME : ${this.get().selectedResidential.length}`)),
     tap(() => this.clearBuffer()),
     /*tap(() => this.getResourcesTreeRaw()),*/
-    tap(() => this.dialogService.success('Recursos movidos exitosamente a PYME')),
     concatMap(() => this.ofsRestApi.getAllResources()),
     concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
     tap(() => this.setIsLoading(false)),
@@ -227,8 +173,6 @@ export class AppStore extends ComponentStore<State> {
     map(() => this.handleWorkSkillsToResidential(this.get().selectedPyme)),
     switchMap(resources => {
       const hasInvalidResource = resources.some(resource => resource.workSkills.length === 0);
-      console.log(resources);
-      console.log(hasInvalidResource);
       if (hasInvalidResource) {
         this.dialogService.error(`Error: Un recurso seleccionado no cuenta con habilidades para restaurar.`);
         this.setIsLoading(false);
@@ -241,8 +185,9 @@ export class AppStore extends ComponentStore<State> {
       }
     }),
     concatMap((resource) => this.ofsRestApi.setWorkSkills(resource[0])),
+    switchMap(() => this.calendarResource(false)),
+    tap(() => this.dialogService.success(`Recursos movidos exitosamente a Residencial : ${this.get().selectedPyme.length}`)),
     tap(() => this.clearBuffer()),
-    tap(() => this.dialogService.success('Recursos movidos exitosamente a RESIDENCIAL')),
     concatMap(() => this.ofsRestApi.getAllResources()),
     concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
     tap(() => this.setIsLoading(false)),
@@ -253,6 +198,12 @@ export class AppStore extends ComponentStore<State> {
   );
 
   // Actions
+  private login(ulogin: string, usersOfsc: string): boolean {
+    const validUsers = usersOfsc.trim().split(";");
+    const valid = validUsers.find(user => user === ulogin);
+    return !!valid;
+  }
+
   private handleResourcesTree(resourcesTreeRaw: Resource[]) {
     const cleanResourcesTreeRaw = resourcesTreeRaw.filter((resource) =>
       resource.status === 'active' && resource.organization === 'default');
@@ -268,193 +219,10 @@ export class AppStore extends ComponentStore<State> {
   };
 
   public confirmMovement(pyme: boolean) {
-    const recursos = Math.floor(Math.random()*100);
     pyme ?
-      this.dialogService.confirm('¿Seguro que deseas mover ' + this.get().selectedResidential.length + ' recursos a PYME?').subscribe(result => result! && this.residentialToPyme())
+      this.dialogService.confirm(`¿Seguro que deseas mover ${this.get().selectedResidential.length} ${this.get().selectedResidential.length > 1 ? 'recursos' : 'recurso'} a PYME?`).subscribe(result => result! && this.residentialToPyme())
       :
-      this.dialogService.confirm('¿Seguro que deseas devolver ' + this.get().selectedPyme.length + ' recursos a RESIDENCIAL?').subscribe(result => result! && this.pymeToResidential());
-  }
-/*  private exportByChunks(manualMoves: any[]) {
-    from(manualMoves).pipe(
-      bufferCount(chunkSize),
-      concatMap((chunk) => {
-        const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(chunk);
-        return Promise.resolve(worksheet);
-      }),
-      reduce((acc: XLSX.WorkBook, worksheet: XLSX.WorkSheet) => {
-        if (!acc.Sheets) {
-          acc = { Sheets: { movimientos: worksheet }, SheetNames: ['movimientos'] };
-        } else {
-          XLSX.utils.book_append_sheet(acc, worksheet, `movimientos_${Object.keys(acc.Sheets).length}`);
-        }
-        return acc;
-      }, {} as XLSX.WorkBook),
-      concatMap((workbook) => {
-        const excelBuffer: any = XLSX.write(workbook, {
-          bookType: 'xlsx',
-          type: 'array',
-        });
-        return Promise.resolve(excelBuffer);
-      })
-    ).subscribe({
-      next: (excelBuffer) => {
-        this.exportService.saveAsExcelFile(excelBuffer, `MovMans_${this.get().selectedRange.from} a ${this.get().selectedRange.to}`);
-      },
-      error: (err) => {
-        this.dialogService.error(err);
-      },
-      complete: () => {
-        console.log('Complete, total: ' + manualMoves.length);
-        this.dialogService.success('Archivo generado con éxito');
-        this.clearBuffer();
-      },
-    });
-  }*/
-
-  private listDailyExtract() {
-    const { intervalDates } = this.get();
-    return from(intervalDates).pipe(
-      concatMap((date) =>
-        this.ofsRestApi.getAListOfDailyExtractFilesForADate({
-          dailyExtractDate: date,
-        })
-      ),
-      toArray()
-    );
-  };
-
-  private dailyExtractFile() {
-    const { validatedDates } = this.get();
-    return from(validatedDates).pipe(
-      concatMap((date) => this.ofsRestApi.getADailyExtractFile(date)),
-      toArray()
-    );
-  }
-
-  private handleDailyExtractFile(files: string[]) {
-    return from(files).pipe(
-      concatMap((file) => from(this.xmlToJson(file))),
-      toArray()
-    );
-  }
-
-  private handleJsonBody(json: GetADailyExtractFileJSONResponse[]) {
-    return from(json).pipe(
-      concatMap((json) => this.handleJson(json)),
-      toArray()
-    );
-  }
-
-  private async xmlToJson(xml: string) {
-    try {
-      const json = await parseStringPromise(xml, {
-        explicitArray: false,
-        mergeAttrs: true,
-      });
-      return json;
-    } catch (error) {
-      console.error('Error parsing XML: ', error);
-      this.dialogService.error('Error parsing XML: ' + String(error));
-      throw error;
-    }
-  }
-
-/*  public descargarRazones() {
-    this.setIsLoading(true);
-    const range = this.createRange();
-    if (range.length > 16 && range.length < 0) {
-      this.dialogService.error('El rango de fechas no puede ser mayor a 15 días');
-      this.clearBuffer();
-      this.setIsLoading(false);
-      return;
-    } else {
-      this.exportManualMoveReasons();
-    }
-  }*/
-
-  private handleListDailyExtractFiles(
-    dailyExtractFilesList: GetAListDailyExtractFilesDateResponse[]
-  ) {
-    const regex = /\d{4}-\d{2}-\d{2}/;
-    const arregloFechas: string[] = [];
-    dailyExtractFilesList.map((fileByDate) => {
-      if (fileByDate.files.items.length > 0) {
-        fileByDate.files.items.map((item) => {
-          if (item.name === 'appt_manual_move') {
-            const fecha = item.links[0].href.match(regex);
-            arregloFechas.push(fecha![0]);
-          }
-        });
-      }
-    });
-    this.setValidatedDates(arregloFechas);
-  }
-
-  private createRange(): string[] {
-    const { selectedRange } = this.get();
-    let fechas = [];
-    let fechaActual = new Date(selectedRange.from!);
-    let fechaFinal = new Date(selectedRange.to!);
-    while (fechaActual <= fechaFinal) {
-      fechas.push(fechaActual.toISOString().split('T')[0]);
-      fechaActual.setDate(fechaActual.getDate() + 1);
-    }
-    this.setIntervalDates(fechas);
-    return fechas;
-  }
-
-  private handleJson(ApptManualMoves: GetADailyExtractFileJSONResponse) {
-    const json: any[] = [];
-    if (Array.isArray(ApptManualMoves.appt_manual_moves.appt_manual_move)) {
-      ApptManualMoves.appt_manual_moves.appt_manual_move.map(({ Field }) => {
-        const newItem: { [key: string]: string | undefined } = {};
-        Field.forEach((field) => {
-          if (
-            field.name === 'Condición de movimiento' ||
-            field.name === 'Discrepancia de aptitud laboral' ||
-            field.name === 'Discrepancia de zona de trabajo' ||
-            field.name === 'Enrutado automático a fecha' ||
-            field.name === 'Etiqueta de motivo de movimiento' ||
-            field.name === 'Hora de acción de movimiento' ||
-            field.name === 'ID de actividad' ||
-            field.name === 'Mover a fecha' ||
-            field.name === 'Mover de fecha' ||
-            field.name === 'Nombre de motivo de movimiento' ||
-            field.name === 'Nombre de usuario'
-          ) {
-            newItem[field.name] = field._;
-          }
-        });
-        json.push(newItem);
-        return newItem;
-      });
-    } else if (typeof ApptManualMoves.appt_manual_moves.appt_manual_move === 'object' && ApptManualMoves.appt_manual_moves.appt_manual_move !== null) {
-      const arrayFromObject: ApptManualMove[] = [];
-      arrayFromObject.push(ApptManualMoves.appt_manual_moves.appt_manual_move);
-      arrayFromObject.map(({ Field }) => {
-        const newItem: { [key: string]: string | undefined } = {};
-        Field.forEach((field) => {
-          if (
-            field.name === 'Condición de movimiento' ||
-            field.name === 'Discrepancia de aptitud laboral' ||
-            field.name === 'Discrepancia de zona de trabajo' ||
-            field.name === 'Enrutado automático a fecha' ||
-            field.name === 'Etiqueta de motivo de movimiento' ||
-            field.name === 'Hora de acción de movimiento' ||
-            field.name === 'ID de actividad' ||
-            field.name === 'Mover a fecha' ||
-            field.name === 'Mover de fecha' ||
-            field.name === 'Nombre de motivo de movimiento' ||
-            field.name === 'Nombre de usuario'
-          ) {
-            newItem[field.name] = field._;
-          }
-        });
-        json.push(newItem);
-        return newItem;
-      });
-    }
-    return json;
+      this.dialogService.confirm(`¿Seguro que deseas mover ${this.get().selectedPyme.length} ${this.get().selectedPyme.length > 1 ? 'recursos' : 'recurso'} a Residencial?`).subscribe(result => result! && this.pymeToResidential());
   }
 
   private handleWorkSkillsToPyme(selectedResources: Resource[]): resourcesToSetWorkskills[] {
@@ -468,23 +236,9 @@ export class AppStore extends ComponentStore<State> {
         }
       }
 
-      /*const latestSkillsMap = new Map<string, workSkillItem>();*/
       const skillsMap = new Map<string, workSkillItem>();
 
       resource.workSkills.items.forEach(skill => !skill.endDate && skillsMap.set(skill.workSkill, skill));
-/*      resource.workSkills.items.forEach(skill => {
-        const existingSkill = latestSkillsMap.get(skill.workSkill);
-        if (!existingSkill || dayjs(skill.startDate).isAfter(dayjs(existingSkill.startDate))) {
-          latestSkillsMap.set(skill.workSkill, skill)
-        }
-      });*/
-
-/*      const filteredSkills: workSkills[] = Array.from(latestSkillsMap.values()).map(item => ({
-        workSkill: item.workSkill,
-        ratio: item.ratio,
-        startDate: item.startDate,
-        endDate: item.endDate
-      }));*/
 
       const workSkills: workSkills[] = Array.from(skillsMap.values()).map(item => ({
         workSkill: item.workSkill,
@@ -534,7 +288,96 @@ export class AppStore extends ComponentStore<State> {
 
       return resourceData;
     });
-      /*.filter(resourceData => resourceData.workSkills.length > 0);*/
+  }
+
+  private calendarResource(toPyme: boolean) {
+    const { selectedRange } = this.get();
+    const today = dayjs();
+    if (toPyme) {
+      const {selectedResidential} = this.get();
+      selectedResidential.map(resource => {
+        this.ofsRestApi.getACalendar(resource.resourceId, {dateFrom: selectedRange.from!, dateTo: selectedRange.to!}).subscribe(calendarResource => {
+          if (calendarResource) {
+            const calendarResourceArray: GetACalendarResponseFormatted[] = Object.entries(calendarResource).flatMap(([date, categorie]) => {
+              return Object.values(categorie).map(details => {
+                return {
+                  date: date,
+                  ...(details as object)
+                }
+              })
+            });
+            calendarResourceArray.map(({date, recordType}) => {
+              if (recordType === "non-working") {
+                this.ofsRestApi.
+                  setAWorkSchedule(resource.resourceId, {
+                    startDate: date,
+                    endDate: date,
+                    comments: "Operaciones PyME API",
+                    isWorking: true,
+                    shiftLabel: "09:00-16:00",
+                    recordType: "extra_shift",
+                    recurrence: {
+                      recurrenceType: "daily",
+                      recurEvery: 1
+                    }
+                })
+                  .subscribe(response => {
+                    if (response) {
+                      return Promise.resolve();
+                    } else {
+                      throw new Error(
+                        'Hubo un error al establecer el horario de trabajo del recurso'
+                      );
+                    }
+                })
+              }
+            });
+          }
+        })
+      });
+    } else {
+      const {selectedPyme} = this.get();
+      const daysInFuture = today.add(5, 'days').format("YYYY-MM-DD");
+      selectedPyme.map(resource => {
+        this.ofsRestApi.getACalendar(resource.resourceId, {dateFrom: today.format("YYYY-MM-DD"), dateTo: daysInFuture}).subscribe(calendarResource => {
+          if (calendarResource) {
+            const calendarResourceArray: GetACalendarResponseFormatted[] = Object.entries(calendarResource).flatMap(([date, categorie]) => {
+              return Object.values(categorie).map(details => {
+                return {
+                  date: date,
+                  ...(details as object)
+                }
+              })
+            });
+            calendarResourceArray.map(({date, recordType, shiftLabel, comments}) => {
+              if (comments?.includes("Operaciones PyME") && shiftLabel === "09:00-16:00") {
+                this.ofsRestApi.setAWorkSchedule(resource.resourceId, {
+                  startDate: date,
+                  endDate: date,
+                  comments: "Retorno Residencial API",
+                  isWorking: false,
+                  recordType: "non-working",
+                  shiftType: "regular",
+                  nonWorkingReason: "DÍA_LIBRE",
+                  recurrence: {
+                    recurrenceType: "daily",
+                    recurEvery: 1
+                  }
+                }).subscribe(response => {
+                  if (response) {
+                    return Promise.resolve();
+                  } else {
+                    throw new Error('Hubo un error al establecer el horario de trabajo del recurso de Residencial a PyME')
+                    }
+                  }
+                )
+              }
+            });
+          }
+        })
+      });
+    }
+    return of(true);
   }
 
   private clearBuffer() {

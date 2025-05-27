@@ -13,12 +13,6 @@ import {Resource} from "../../types/ofs-rest-api";
 import {ResourceTreeComponent} from "../resource-tree/resource-tree.component";
 import {ControlDateComponent} from "../control-date/control-date.component";
 
-/*export interface Node {
-  name: string;
-  value: string;
-  subNode?: Node[];
-}*/
-
 @Component({
   selector: 'app-residencial-layout',
   standalone: true,
@@ -29,36 +23,9 @@ import {ControlDateComponent} from "../control-date/control-date.component";
 })
 export class ResidencialLayoutComponent {
   vm$ = this.store.vm$;
+  value: string = "";
 
   constructor(protected readonly store: AppStore) {}
 
-  value = "";
   resources: Resource | undefined = undefined;
-
-/*  mostrar() {
-    this.resources = this.store.getTree();
-    console.log(this.resources);
-  }*/
-
-/*  readonly node = signal<Node>({
-    name: 'Parent',
-    value: 'Bucket',
-    subNode: [
-      {name: 'Recurso1', value: 'Recurso1'},
-      {name: 'Recurso2', value: 'Recurso2'},
-      {name: 'Recurso3', value: 'Recurso3'},
-      {name: 'Recurso4', value: 'Recurso4'},
-    ]
-  });*/
-
-/*  update(completed: boolean, index?: number) {
-    this.node.update(node => {
-      if (index === undefined) {
-        node.name = "Resource";
-      } else {
-        node.subNode![index].value = "Modificado";
-      }
-      return {...node}
-    })
-  }*/
 }

@@ -1,4 +1,4 @@
-import {Component, signal} from '@angular/core';
+import {Component, SimpleChanges} from '@angular/core';
 import {MatCheckboxChange, MatCheckboxModule} from "@angular/material/checkbox";
 import {FormsModule} from "@angular/forms";
 import {MatCardModule} from "@angular/material/card";
@@ -10,12 +10,13 @@ import {MatTooltipModule} from "@angular/material/tooltip";
 import {AppStore} from "../../app.store";
 import {AsyncPipe, NgIf} from "@angular/common";
 import {Resource} from "../../types/ofs-rest-api";
+import {FilterResourcesPipe} from "./filter-resources.pipe";
 
 @Component({
   selector: 'app-pyme-layout',
   standalone: true,
   imports: [
-    MatCheckboxModule, FormsModule, MatCardModule, MatSlideToggleModule, MatFormField, MatIcon, MatInput, MatLabel, MatTooltipModule, AsyncPipe, NgIf
+    MatCheckboxModule, FormsModule, MatCardModule, MatSlideToggleModule, MatFormField, MatIcon, MatInput, MatLabel, MatTooltipModule, AsyncPipe, NgIf, FilterResourcesPipe
   ],
   templateUrl: './pyme-layout.component.html',
 })
@@ -24,7 +25,7 @@ export class PymeLayoutComponent {
 
   constructor(protected readonly store: AppStore) {}
 
-  value = "";
+  searchTerm = "";
 
   onSelectionChange(event: MatCheckboxChange, resourceNode: Resource): void {
     const isSelected = event.checked;

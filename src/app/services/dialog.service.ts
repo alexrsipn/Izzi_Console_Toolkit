@@ -33,6 +33,14 @@ export class DialogService {
     });
     return dialogRef.afterClosed();
   }
+
+  invalid(message: string): Observable<void> {
+    const dialogRef = this.dialog.open(InvalidDialogComponent, {
+      data: message,
+      disableClose: true
+    });
+    return dialogRef.afterClosed();
+  }
 }
 
 @Component({
@@ -104,6 +112,22 @@ export class SuccessDialogComponent {
   `
 })
 export class ConfirmDialogComponent {
+  constructor(@Inject(MAT_DIALOG_DATA) public data: Error) {
+  }
+}
+
+@Component({
+  selector: 'app-invalid-dialog',
+  standalone: true,
+  imports: [MatIconModule, MatButtonModule, MatDialogModule],
+  template: `
+    <h2 mat-dialog-title>Sin autorización</h2>
+    <mat-dialog-content>
+      <p>{{data}}</p>
+    </mat-dialog-content>
+  `
+})
+export class InvalidDialogComponent {
   constructor(@Inject(MAT_DIALOG_DATA) public data: Error) {
   }
 }

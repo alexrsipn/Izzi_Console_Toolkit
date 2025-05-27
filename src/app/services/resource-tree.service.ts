@@ -1,16 +1,6 @@
 import { Injectable } from '@angular/core';
 import {Resource} from "../types/ofs-rest-api";
 
-/*export interface ResourceNode {
-  resourceId: string;
-  parentResourceId?: string;
-  resourceType: string;
-  organization: string;
-  status: string;
-  name: string;
-  children?: ResourceNode[];
-}*/
-
 @Injectable({
   providedIn: 'root'
 })

@@ -1,14 +1,15 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {
-  GetDailyExtractFilesDateReqParams,
-  GetAListDailyExtractFilesDateResponse,
   GetResourcesResponse,
   GetResourcesReqQueryParams,
   Resource,
-  SetWorkSkillReqBodyParams, SetWorkSkillResponse, resourcesToSetWorkskills,
+  SetWorkSkillResponse,
+  resourcesToSetWorkskills,
+  GetACalendarReqQueryParams,
+  GetACalendarResponse, SetAWorkScheduleBodyParams, SetAWorkScheduleResponse,
 } from '../types/ofs-rest-api';
-import {forkJoin, map, mergeMap, Observable, of, tap} from "rxjs";
+import {forkJoin, map, mergeMap, Observable, of} from "rxjs";
 
 @Injectable({
   providedIn: 'root',
@@ -73,67 +74,34 @@ export class OfsRestApiService {
         this.credentials.user + ':' + this.credentials.pass
       )}`
     });
-    const data = [
-      {
-        "workSkill": "PYME",
-        "ratio": 100,
-        "startDate": "2025-04-25",
-        "endDate": "2025-04-25"
-      },
-      {
-        "workSkill": "INST",
-        "ratio": 100,
-        "startDate": "2025-04-26"
-      },
-      {
-        "workSkill": "TC",
-        "ratio": 100,
-        "startDate": "2025-04-26"
-      },
-      {
-        "workSkill": "WIFI",
-        "ratio": 100,
-        "startDate": "2025-04-26"
-      }
-    ];
     return this.http.post<SetWorkSkillResponse>(endpoint, resource.workSkills, {headers});
   }
 
-  getAListOfDailyExtractFiles(selectedRange: string[]) {
-    selectedRange.map((date) => {
-      this.getAListOfDailyExtractFilesForADate({ dailyExtractDate: date });
-    });
-  }
-
-  getAListOfDailyExtractFilesForADate(
-    pathParams: GetDailyExtractFilesDateReqParams
-  ) {
-    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/folders/dailyExtract/folders/${pathParams.dailyExtractDate}/files`;
+  getACalendar(resourceId: string, queryParams: GetACalendarReqQueryParams) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}/workSchedules/calendarView`;
     const headers = new HttpHeaders({
       Authorization: `Basic ${btoa(
         this.credentials.user + ':' + this.credentials.pass
-      )}`,
+      )}`
     });
-    const params = new HttpParams().set('language', 'es-ES');
-    return this.http.get<GetAListDailyExtractFilesDateResponse>(endpoint, {
+    const params = new HttpParams({
+      fromObject: {
+        ...queryParams,
+      }
+    });
+    return this.http.get<GetACalendarResponse>(endpoint, {
       headers,
-      params,
-    });
+      params
+    })
   }
 
-  getADailyExtractFile(pathParams: string) {
-    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/folders/dailyExtract/folders/${pathParams}/files/appt_manual_move`;
+  setAWorkSchedule(resourceId: string, queryParams: SetAWorkScheduleBodyParams) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}/workSchedules`;
     const headers = new HttpHeaders({
       Authorization: `Basic ${btoa(
         this.credentials.user + ':' + this.credentials.pass
-      )}`,
-      Accept: 'application/xml',
+      )}`
     });
-    const params = new HttpParams().set('language', 'es-ES');
-    return this.http.get<string>(endpoint, {
-      headers,
-      params,
-      responseType: 'text' as 'json',
-    });
+    return this.http.post<SetAWorkScheduleResponse>(endpoint, queryParams, {headers});
   }
 }

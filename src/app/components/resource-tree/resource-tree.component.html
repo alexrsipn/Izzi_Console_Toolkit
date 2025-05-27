@@ -1,11 +1,19 @@
-<ul style="padding: 0; list-style-type: none">
-  <li style="padding: 0; list-style-type: none">
-    <mat-checkbox color="primary" [(ngModel)]="resourceNode.selected" [checked]="resourceNode.selected" (change)="onSelectionChange($event)" [disabled]="resourceNode.resourceType !== 'TEC'"/>
-    <span #tooltip="matTooltip" matTooltip="{{resourceNode.resourceId}} - {{resourceNode.resourceType}}">{{resourceNode.name}}</span>
-    <ul *ngIf="resourceNode.children?.length">
-      <ng-container *ngFor="let child of resourceNode.children">
-        <app-resource-tree [resourceNode]="child"></app-resource-tree>
-      </ng-container>
+<ng-container *ngIf="vm$ | async as vm">
+  <ng-container *ngIf="displayableNodes; else noResultsMessage">
+    <ul style="padding: 0; list-style-type: none">
+      <li style="padding: 0; list-style-type: none">
+        <mat-checkbox color="primary" [(ngModel)]="displayableNodes.selected" [checked]="displayableNodes.selected" (change)="onSelectionChange($event)" [disabled]="displayableNodes.resourceType !== 'TEC' || vm.selectedPyme.length > 0" #tooltip="matTooltip" matTooltip="{{displayableNodes.resourceId}} - {{displayableNodes.resourceType}}">{{displayableNodes.name}}</mat-checkbox>
+        <ul *ngIf="displayableNodes.children?.length">
+          <ng-container *ngFor="let childNode of displayableNodes.children">
+            <app-resource-tree [resourceNode]="childNode" [searchTerm]="searchTerm"></app-resource-tree>
+          </ng-container>
+        </ul>
+      </li>
     </ul>
-  </li>
-</ul>
+  </ng-container>
+  <ng-template #noResultsMessage>
+    <div style="text-align: center; padding: 1rem">
+      <p>No se encontraron elementos en el árbol de Residencial que coincidan con la búsqueda.</p>
+    </div>
+  </ng-template>
+</ng-container>

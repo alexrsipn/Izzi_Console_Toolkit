@@ -79,21 +79,6 @@ export class ControlDateComponent {
     }))
   );
 
-  setRangeShortcut(dias: number) {
-    let startMoment =
-      dias > 1
-        ? moment().subtract(dias, 'days').format('YYYY-MM-DD')
-        : moment().format('YYYY-MM-DD');
-    let endMoment = moment().format('YYYY-MM-DD');
-    this.range.setValue({
-      start: new Date(startMoment),
-      end: new Date(endMoment),
-    });
-    this.range.get('start')?.setErrors(null);
-    this.range.get('end')?.setErrors(null);
-    this.range.updateValueAndValidity();
-  }
-
   private toFormattedDateString(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

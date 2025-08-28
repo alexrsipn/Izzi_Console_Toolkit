@@ -10,7 +10,7 @@ Se requiere establecer los siguien tes parámetros en la configuración del plug
 
 - Name (Spanish): Intercambio de técnicos Residencial-PyME
 - Name (English): Intercambio de técnicos Residencial-PyME
-- Label: plugin_residentialpyme
+- Label: plugin_residentialpyme_techs
 - Entity: -
 - Visibility Rules similar to: -
 

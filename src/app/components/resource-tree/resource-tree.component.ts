@@ -7,10 +7,9 @@ import {FormsModule} from "@angular/forms";
 import {AppStore} from "../../app.store";
 
 @Component({
-  selector: 'app-resource-tree',
-  standalone: true,
-  imports: [CommonModule, MatTooltipModule, MatCheckboxModule, FormsModule],
-  templateUrl: './resource-tree.component.html',
+    selector: 'app-resource-tree',
+    imports: [CommonModule, MatTooltipModule, MatCheckboxModule, FormsModule],
+    templateUrl: './resource-tree.component.html'
 })
 export class ResourceTreeComponent {
   @Input() resourceNode!: Resource;

@@ -44,10 +44,9 @@ export class DialogService {
 }
 
 @Component({
-  selector: 'app-error-dialog',
-  standalone: true,
-  imports: [MatIconModule, MatButtonModule, MatDialogModule, CommonModule],
-  template: `
+    selector: 'app-error-dialog',
+    imports: [MatIconModule, MatButtonModule, MatDialogModule, CommonModule],
+    template: `
     <h1 mat-dialog-title style="margin-top: 1rem; display: flex">
       <span>Error </span>
       <span style="align-self: center;">
@@ -74,10 +73,9 @@ export class ErrorDialogComponent {
 }
 
 @Component({
-  selector: 'app-scc-dialog',
-  standalone: true,
-  imports: [MatIconModule, MatButtonModule, MatDialogModule],
-  template: `
+    selector: 'app-scc-dialog',
+    imports: [MatIconModule, MatButtonModule, MatDialogModule],
+    template: `
     <h1 mat-dialog-title style="margin-top: 1rem; display: flex">
       <span>Éxito </span>
       <span style="align-self: center;">
@@ -97,10 +95,9 @@ export class SuccessDialogComponent {
 }
 
 @Component({
-  selector: 'app-confirm-dialog',
-  standalone: true,
-  imports: [MatIconModule, MatButtonModule, MatDialogModule],
-  template: `
+    selector: 'app-confirm-dialog',
+    imports: [MatIconModule, MatButtonModule, MatDialogModule],
+    template: `
     <h2 mat-dialog-title>Confirmar movimiento de recursos</h2>
     <mat-dialog-content>
       <p>{{data}}</p>
@@ -117,10 +114,9 @@ export class ConfirmDialogComponent {
 }
 
 @Component({
-  selector: 'app-invalid-dialog',
-  standalone: true,
-  imports: [MatIconModule, MatButtonModule, MatDialogModule],
-  template: `
+    selector: 'app-invalid-dialog',
+    imports: [MatIconModule, MatButtonModule, MatDialogModule],
+    template: `
     <h2 mat-dialog-title>Sin autorización</h2>
     <mat-dialog-content>
       <p>{{data}}</p>

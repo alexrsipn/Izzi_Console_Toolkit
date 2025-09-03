@@ -14,12 +14,11 @@ import {ResourceTreeComponent} from "../resource-tree/resource-tree.component";
 import {ControlDateComponent} from "../control-date/control-date.component";
 
 @Component({
-  selector: 'app-residencial-layout',
-  standalone: true,
-  imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, ResourceTreeComponent, ControlDateComponent],
-  templateUrl: './residencial-layout.component.html',
-  providers: [provideNativeDateAdapter()],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-residencial-layout',
+    imports: [MatCheckboxModule, FormsModule, MatFormFieldModule, MatDatepickerModule, MatCardModule, MatInputModule, MatIconModule, NgIf, AsyncPipe, ResourceTreeComponent, ControlDateComponent],
+    templateUrl: './residencial-layout.component.html',
+    providers: [provideNativeDateAdapter()],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResidencialLayoutComponent {
   vm$ = this.store.vm$;

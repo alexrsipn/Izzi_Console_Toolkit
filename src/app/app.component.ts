@@ -9,18 +9,17 @@ import {PymeLayoutComponent} from "./components/pyme-layout/pyme-layout.componen
 import {MatIconModule} from "@angular/material/icon";
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    SpinnerComponent,
-    ControlDateComponent,
-    ResidencialLayoutComponent,
-    PymeLayoutComponent,
-  ],
-  templateUrl: './app.component.html',
+    selector: 'app-root',
+    imports: [
+        CommonModule,
+        MatButtonModule,
+        MatIconModule,
+        SpinnerComponent,
+        ControlDateComponent,
+        ResidencialLayoutComponent,
+        PymeLayoutComponent,
+    ],
+    templateUrl: './app.component.html'
 })
 export class AppComponent {
   constructor(protected readonly store: AppStore) { }

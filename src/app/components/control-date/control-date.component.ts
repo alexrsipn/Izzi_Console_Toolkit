@@ -35,24 +35,23 @@ const MY_DATE_FORMATS = {
 };
 
 @Component({
-  selector: 'app-control-date',
-  standalone: true,
-  imports: [
-    MatFormFieldModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatDividerModule,
-    MatButtonModule,
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
-    { provide: DateAdapter, useClass: NativeDateAdapter },
-    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
-  ],
-  templateUrl: './control-date.component.html',
+    selector: 'app-control-date',
+    imports: [
+        MatFormFieldModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatDividerModule,
+        MatButtonModule,
+    ],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    providers: [
+        { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
+        { provide: DateAdapter, useClass: NativeDateAdapter },
+        { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+    ],
+    templateUrl: './control-date.component.html'
 })
 export class ControlDateComponent {
 

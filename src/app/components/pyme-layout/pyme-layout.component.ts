@@ -13,12 +13,11 @@ import {Resource} from "../../types/ofs-rest-api";
 import {FilterResourcesPipe} from "./filter-resources.pipe";
 
 @Component({
-  selector: 'app-pyme-layout',
-  standalone: true,
-  imports: [
-    MatCheckboxModule, FormsModule, MatCardModule, MatSlideToggleModule, MatFormField, MatIcon, MatInput, MatLabel, MatTooltipModule, AsyncPipe, NgIf, FilterResourcesPipe
-  ],
-  templateUrl: './pyme-layout.component.html',
+    selector: 'app-pyme-layout',
+    imports: [
+        MatCheckboxModule, FormsModule, MatCardModule, MatSlideToggleModule, MatFormField, MatIcon, MatInput, MatLabel, MatTooltipModule, AsyncPipe, NgIf, FilterResourcesPipe
+    ],
+    templateUrl: './pyme-layout.component.html'
 })
 export class PymeLayoutComponent {
   vm$ = this.store.vm$;

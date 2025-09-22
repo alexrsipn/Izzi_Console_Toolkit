@@ -1,38 +1,19 @@
 @if (store.vm$ | async; as vm) { @if (vm.isLoading) {
 <app-spinner />
 }
-<main class="container">
-  <section
-    style="
-      height: 90%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    "
-  >
-    <!-- <app-control-desk
-      [controlDesks]="vm.controlDesk"
-      (deskChanged)="store.setSelectedDesk($event)"
-    ></app-control-desk> -->
-<!--    <div>
-      <app-control-date
-        (rangeChange)="store.setSelectedRange($event)"
-      ></app-control-date>
-    </div>-->
-<!--    <div style="padding: 3rem">
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="store.descargarRazones()"
-        [disabled]="!vm.isDateRangeSelected.valid"
-      >
-        Descargar
-      </button>
-    </div>-->
-    <div style="display: flex; justify-content: space-around; align-items: center; width: 100%; height: 100%">
+<main class="h-screen max-h-screen">
+  <section class="h-[90%] flex flex-col justify-start items-center">
+    <mat-tab-group class="w-full h-full">
+      <mat-tab label="Órdenes internas">
+        <div class="w-full h-full">
+          <app-interns-layout/>
+        </div>
+          <!--<app-residencial-layout/>-->
+      </mat-tab>
+    </mat-tab-group>
+    <!--<div style="display: flex; justify-content: space-around; align-items: center; width: 100%; height: 100%">
       <div style="width: 45%; height: 100%">
-        <h2 style="text-align: center; padding: 1rem 0">Izzi Residencial</h2>
+        &lt;!&ndash;<h2 style="text-align: center; padding: 1rem 0">Izzi Residencial</h2>&ndash;&gt;
         <app-residencial-layout/>
       </div>
       <div style="display: flex; justify-content: space-around; align-items: center; flex-direction: column; width: 15%; height: 100%;">
@@ -46,13 +27,13 @@
         </button>
       </div>
       <div style="width: 45%; height: 100%">
-        <h2 style="text-align: center; padding: 1rem 0">Izzi PyME</h2>
+        &lt;!&ndash;<h2 style="text-align: center; padding: 1rem 0">Izzi PyME</h2>&ndash;&gt;
         <app-pyme-layout/>
       </div>
-    </div>
+    </div>-->
   </section>
-  <footer class="flex-evenly">
-    <button mat-raised-button color="warn" (click)="store.sendCloseMessage({})">
+  <footer class="flex justify-center items-center">
+    <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-950 font-semibold" (click)="store.sendCloseMessage({})">
       Cerrar
     </button>
   </footer>

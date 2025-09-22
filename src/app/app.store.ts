@@ -15,11 +15,12 @@ import {
   concatMap,
   map,
   tap,
-  switchMap, of,
+  switchMap, of, delay, forkJoin,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
 import { DialogService } from './services/dialog.service';
 import {ResourceTreeService} from "./services/resource-tree.service";
+import {ExcelExportService} from "./services/excel-export.service";
 import dayjs from 'dayjs';
 
 interface State {
@@ -27,11 +28,18 @@ interface State {
   selectedRange: DataRange;
   intervalDates: string[];
   validatedDates: string[];
+  resourcesTreeRaw?: Resource[];
   resourcesTreeResidencial?: Resource;
   resourcesTreePyme?: Resource[];
+  resourcesTreeInternalOrders?: Resource[];
   selectedResidential: Resource[];
   selectedPyme: Resource[];
+  selectedInternalOrders: Resource[];
+  allowInternalOrdersProcess?: boolean;
+  resourcesToUpdate?: Resource[];
 }
+
+type SelectionType = 'selectedResidential' | 'selectedPyme' | 'selectedInternalOrders';
 
 const initialState: State = {
   isLoading: false,
@@ -39,7 +47,8 @@ const initialState: State = {
   intervalDates: [],
   validatedDates: [],
   selectedResidential: [],
-  selectedPyme: []
+  selectedPyme: [],
+  selectedInternalOrders: [],
 };
 
 @Injectable({
@@ -51,6 +60,7 @@ export class AppStore extends ComponentStore<State> {
     private readonly ofsRestApi: OfsRestApiService,
     private readonly dialogService: DialogService,
     private readonly resourceTreeService: ResourceTreeService,
+    private readonly excelExportService: ExcelExportService
   ) {
     super(initialState);
     this.handleOpenMessage(this.ofsPluginApi.openMessage$);
@@ -71,6 +81,10 @@ export class AppStore extends ComponentStore<State> {
     ...state,
     isLoading,
   }));
+  readonly setResourcesTreeRaw = this.updater<Resource[]>((state, resourcesTreeRaw) => ({
+    ...state,
+    resourcesTreeRaw
+  }));
   readonly setResourcesTreeResidencial = this.updater<Resource>((state, resourcesTreeResidencial) => ({
     ...state,
     resourcesTreeResidencial,
@@ -79,6 +93,30 @@ export class AppStore extends ComponentStore<State> {
     ...state,
     resourcesTreePyme,
   }));
+  readonly setResourcesTreeInternalOrders = this.updater<Resource[]>((state, resourcesTreeInternalOrders) => ({
+    ...state,
+    resourcesTreeInternalOrders,
+  }));
+  readonly toggleSelection = this.updater((state, {resource, isSelected, selectionType}: {resource: Resource, isSelected: boolean, selectionType: SelectionType}) => {
+    const currentSelection = state[selectionType];
+    let updatedSelection: Resource[];
+
+    if (isSelected) {
+      const exists = currentSelection.some(r => r.resourceId === resource.resourceId);
+      if (!exists) {
+        updatedSelection = [...currentSelection, resource];
+      } else {
+        updatedSelection = currentSelection;
+      }
+    } else {
+      updatedSelection = currentSelection.filter(r => r.resourceId !== resource.resourceId);
+    }
+
+    return {
+      ...state,
+      [selectionType]: updatedSelection
+    }
+  })
   readonly toggleResidentialSelection = this.updater((state, {resource, isSelected}: {resource: Resource, isSelected: boolean}) => {
     let updatedSelectedResources: Resource[];
 
@@ -117,41 +155,56 @@ export class AppStore extends ComponentStore<State> {
       selectedPyme: updatedSelectedResources
     }
   });
+  readonly setAllowInternalOrderProcess = this.updater<boolean>((state, allowInternalOrdersProcess) => ({
+    ...state,
+    allowInternalOrdersProcess,
+  }));
+  readonly setResourcesToUpdate = this.updater<Resource[]>((state, resourcesToUpdate) => ({
+    ...state,
+    resourcesToUpdate
+  }));
 
   // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
     $.pipe(
       tap(() => this.setIsLoading(true)),
       map(({ securedData, user }) => {
-        const { ofscRestClientId, ofscRestSecretId, urlOFSC, usersOfsc } = securedData;
+        const { ofscRestClientId, ofscRestSecretId, urlOFSC } = securedData;
         const { ulogin } = user;
         if (!ofscRestClientId || !ofscRestClientId || !urlOFSC) {
           throw new Error(
             'Los campos url, user y pass son requeridos para el correcto funcionamiento del plugin'
           );
         }
-        const validLogin = this.login(ulogin, usersOfsc);
-        if (validLogin) {
+        this.ofsRestApi
+          .setUrl(urlOFSC)
+          .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
+        /*const validLogin = this.login(ulogin, usersOfsc);*/
+/*        if (validLogin) {
           this.ofsRestApi
             .setUrl(urlOFSC)
             .setCredentials({ user: ofscRestClientId, pass: ofscRestSecretId });
         } else {
           this.dialogService.invalid("Usuario sin permisos para acceder al plugin");
           EMPTY;
-        }
+        }*/
       }),
-      concatMap(async () => this.getResourcesTreeRaw()),
+      /*concatMap(async () => this.getResourcesTreeRaw()),*/
       concatMap(() => this.ofsRestApi.getAllResources()),
+      tap((resourcesTreeRaw) => this.setResourcesTreeRaw(resourcesTreeRaw)),
       concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
-      tap(() => this.setIsLoading(false))
+      tap(() => this.setIsLoading(false)),
     )
   );
 
   private readonly getResourcesTreeRaw = this.effect(($) =>
     $.pipe(
+      tap(() => this.setIsLoading(true)),
       concatMap(() => this.ofsRestApi.getAllResources()),
+      tap((resourcesTreeRaw) => this.setResourcesTreeRaw(resourcesTreeRaw)),
       concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
-      tap(() => Promise.resolve())
+      tap(() => Promise.resolve()),
+      tap(() => this.setIsLoading(false))
     )
   );
 
@@ -193,6 +246,50 @@ export class AppStore extends ComponentStore<State> {
     tap(() => this.setIsLoading(false)),
   ));
 
+  private readonly handleResourcesInternalOrders = this.effect(($) => $.pipe(
+    tap(() => this.setIsLoading(true)),
+    switchMap(() => {
+      const {allowInternalOrdersProcess, resourcesToUpdate} = this.get();
+      if (!resourcesToUpdate || resourcesToUpdate.length === 0) {
+        return EMPTY;
+      }
+      const updateObservables = resourcesToUpdate.map(resource => this.ofsRestApi.updateAResourceInternalOrders(resource.resourceId, allowInternalOrdersProcess!));
+      return forkJoin(updateObservables);
+    }),
+    tap(() => this.dialogService.success(`Recursos actualizados exitosamente: ${this.get().resourcesToUpdate!.length}`)),
+    tap(() => this.clearBuffer()),
+    delay(500),
+    concatMap(() => this.ofsRestApi.getAllResources()),
+    tap((resourcesTreeRaw) => this.setResourcesTreeRaw(resourcesTreeRaw)),
+    concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
+    tap(() => this.setIsLoading(false))
+  ));
+
+  public readonly handleExportData = this.effect<void>(($) => $.pipe(
+    tap(() => this.setIsLoading(true)),
+    switchMap(() => {
+      const {resourcesTreeRaw} = this.get();
+      if (!resourcesTreeRaw || resourcesTreeRaw.length === 0) {
+        this.dialogService.error('No hay datos para exportar.');
+        this.setIsLoading(false);
+        return EMPTY;
+      }
+
+      const dataToExport = resourcesTreeRaw.filter((resource) => resource.organization === "default" && resource.status === "active" && resource.resourceType === "TEC").map(resource => ({
+        'ID Recurso': resource.resourceId,
+        'ID Recurso padre': resource.parentResourceId,
+        'Nombre': resource.name,
+        'Tipo': resource.resourceType,
+        'Organizacion': resource.organization,
+        'Estado': resource.status,
+        'Permiso Actividades internas': resource.XR_PERMISO_ACT_INT,
+      }));
+
+      return this.excelExportService.exportAsExcelFile(dataToExport, 'Reporte_Recursos_Internos');
+    }),
+    tap(() => this.setIsLoading(false))
+  ))
+
   public sendCloseMessage = this.effect<Partial<Message>>((data$) =>
     data$.pipe(tap((data) => this.ofsPluginApi.close(data)))
   );
@@ -202,28 +299,39 @@ export class AppStore extends ComponentStore<State> {
     const validUsers = usersOfsc.trim().split(";");
     const valid = validUsers.find(user => user === ulogin);
     return !!valid;
-  }
-
-  private handleResourcesTree(resourcesTreeRaw: Resource[]) {
-    const cleanResourcesTreeRaw = resourcesTreeRaw.filter((resource) =>
-      resource.status === 'active' && resource.organization === 'default');
-    const pymeTree = cleanResourcesTreeRaw.filter((resource) =>
-      resource.workSkills?.items &&
-      resource.workSkills?.items?.some(skill => skill.workSkill === 'PYME' && dayjs(skill.endDate)>=dayjs()));
-    const idsPyme = new Set(pymeTree.map(r => r.resourceId));
-    const residencial = cleanResourcesTreeRaw.filter(resource => !idsPyme.has(resource.resourceId));
-    const residencialTree = this.resourceTreeService.buildTree(residencial);
-    residencialTree && this.setResourcesTreeResidencial(residencialTree!);
-    pymeTree && this.setResourcesTreePyme(pymeTree!);
-    return Promise.resolve(residencialTree);
   };
 
-  public confirmMovement(pyme: boolean) {
-    pyme ?
-      this.dialogService.confirm(`¿Seguro que deseas mover ${this.get().selectedResidential.length} ${this.get().selectedResidential.length > 1 ? 'recursos' : 'recurso'} a PYME?`).subscribe(result => result! && this.residentialToPyme())
+  private handleResourcesTree(resourcesTreeRaw: Resource[]) {
+    const cleanedResourcesTreeRaw = resourcesTreeRaw.filter((resource) =>
+      resource.status === 'active' && resource.organization === 'default');
+    const internalOrders = cleanedResourcesTreeRaw.filter((resource) => resource.XR_PERMISO_ACT_INT === 1);
+    const idsInternalOrders = new Set(internalOrders.map(r => r.resourceId));
+    /*const internalOrdersTree = this.resourceTreeService.buildTree(internalOrders);*/
+    /*const pymeTree = cleanedResourcesTreeRaw.filter((resource) =>
+      resource.workSkills?.items &&
+      resource.workSkills?.items?.some(skill => skill.workSkill === 'PYME' && dayjs(skill.endDate)>=dayjs()));*/
+    /*const idsPyme = new Set(pymeTree.map(r => r.resourceId));*/
+    /*const residencial = cleanedResourcesTreeRaw.filter(resource => !idsPyme.has(resource.resourceId));*/
+    const residencial = cleanedResourcesTreeRaw.filter(resource => !idsInternalOrders.has(resource.resourceId));
+    /*const residencialTree = this.resourceTreeService.buildTree(residencial);*/
+    const residencialTree = this.resourceTreeService.buildTree(residencial);
+    const internalOrdersTree = this.resourceTreeService.buildForest(internalOrders);
+    residencialTree && this.setResourcesTreeResidencial(residencialTree);
+    /*pymeTree && this.setResourcesTreePyme(pymeTree);*/
+    internalOrdersTree && this.setResourcesTreeInternalOrders(internalOrdersTree);
+    return Promise.resolve(internalOrdersTree);
+  };
+
+  public confirmInternalOrdersCreation(fromResourceTree: boolean) {
+    const {selectedResidential, selectedInternalOrders} = this.get();
+    const resources = fromResourceTree ? this.handleTechniciansInternalOrders(selectedResidential) : this.handleTechniciansInternalOrders(selectedInternalOrders);
+    const resourcesCount = resources.length;
+    this.setAllowInternalOrderProcess(fromResourceTree);
+    fromResourceTree ?
+      this.dialogService.confirm('Denegar actividades internas', `¿Seguro que deseas denegar a ${resourcesCount} ${resourcesCount > 1 ? 'recursos' : 'recurso'} agregar actividades internas?`).subscribe(result => result! && this.handleResourcesInternalOrders())
       :
-      this.dialogService.confirm(`¿Seguro que deseas mover ${this.get().selectedPyme.length} ${this.get().selectedPyme.length > 1 ? 'recursos' : 'recurso'} a Residencial?`).subscribe(result => result! && this.pymeToResidential());
-  }
+      this.dialogService.confirm('Permitir actividades internas', `¿Seguro que deseas permitir a ${resourcesCount} ${resourcesCount > 1 ? 'recursos' : 'recurso'} agregar actividades internas?`).subscribe(result => result! && this.handleResourcesInternalOrders())
+  };
 
   private handleWorkSkillsToPyme(selectedResources: Resource[]): resourcesToSetWorkskills[] {
     const {selectedRange} = this.get();
@@ -288,6 +396,12 @@ export class AppStore extends ComponentStore<State> {
 
       return resourceData;
     });
+  }
+
+  private handleTechniciansInternalOrders(selectedResources: Resource[]): Resource[] {
+    const resourcesToUpdate = selectedResources.filter(resource => resource.resourceType === "TEC");
+    this.setResourcesToUpdate(resourcesToUpdate);
+    return resourcesToUpdate;
   }
 
   private calendarResource(toPyme: boolean) {
@@ -381,11 +495,18 @@ export class AppStore extends ComponentStore<State> {
   }
 
   private clearBuffer() {
-    this.patchState({selectedResidential: []});
-    this.patchState({selectedPyme: []});
-    this.patchState({resourcesTreeResidencial: undefined});
-    this.patchState(({resourcesTreePyme: undefined}));
-    this.setSelectedRange({from: null, to: null, valid: false});
+    /*this.setSelectedRange({from: null, to: null, valid: false});*/
+    this.patchState({
+      selectedResidential: [],
+      selectedPyme: [],
+      selectedInternalOrders: [],
+      resourcesTreeRaw: [],
+      resourcesTreeResidencial: undefined,
+      resourcesTreePyme: [],
+      resourcesTreeInternalOrders: [],
+      allowInternalOrdersProcess: undefined,
+      resourcesToUpdate: []
+    });
   }
 
   private handleError(err: Error) {

@@ -28,4 +28,29 @@ export class ResourceTreeService {
 
     return root;
   }
+
+  buildForest(resources: Resource[]): Resource[] {
+    const map = new Map<string, Resource>();
+    const roots: Resource[] = [];
+
+    resources.forEach(resource => {
+      map.set(resource.resourceId, { ...resource, children: [] });
+    });
+
+    resources.forEach(resource => {
+      const node = map.get(resource.resourceId)!;
+      if (resource.parentResourceId) {
+        const parent = map.get(resource.parentResourceId);
+        if (parent) {
+          parent.children!.push(node);
+        } else {
+          roots.push(node);
+        }
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  }
 }

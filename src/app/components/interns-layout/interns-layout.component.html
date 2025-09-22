@@ -1,0 +1,59 @@
+<section class="flex flex-col justify-around items-center w-full h-full max-h-[90%]">
+  <ng-container *ngIf="vm$ | async as vm">
+    <ng-container *ngIf="vm.resourcesTreeResidencial && vm.resourcesTreeInternalOrders">
+      <div class="w-full flex justify-end items-center px-4 py-1">
+        <button class="bg-slate-50 text-black hover:font-bold px-4 py-2 rounded border border-slate-600" (click)="store.handleExportData()">Exportar</button>
+      </div>
+    </ng-container>
+    <main class="flex justify-around items-center w-full h-full">
+      <ng-container *ngIf="vm.resourcesTreeResidencial">
+        <div class="flex flex-col justify-between items-center w-1/2 h-full">
+          <div class="w-full h-full flex flex-col justify-between items-center gap-2 md:gap-4 lg:gap-6">
+            <div class="w-full max-w-[80%] max-h-[65%]">
+              <mat-form-field class="w-full rounded">
+                <mat-label>Búsqueda <mat-icon>search</mat-icon></mat-label>
+                <input matInput type="search" [(ngModel)]="valueResidential" />
+              </mat-form-field>
+              <mat-card appearance="raised" class="overflow-y-auto h-full shadow">
+                <mat-card-header>Árbol de recursos:</mat-card-header>
+                <mat-card-content class="rounded">
+                  <div *ngIf="vm.resourcesTreeResidencial" class="m-0 p-0">
+                    <app-resource-tree [resourceNode]="vm.resourcesTreeResidencial" [searchTerm]="valueResidential" [fromResource]="'selectedResidential'"></app-resource-tree>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+            <div class="w-full flex justify-center items-center py-4">
+              <button (click)="store.confirmInternalOrdersCreation(true)" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed" [disabled]="vm.selectedResidential.length === 0">Denegar</button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="vm.resourcesTreeInternalOrders && vm.resourcesTreeInternalOrders.length > 0">
+        <div class="flex flex-col justify-between items-center w-1/2 h-full">
+          <div class="w-full h-full flex flex-col justify-between items-center gap-2 md:gap-4 lg:gap-6">
+            <div class="w-full max-w-[80%] max-h-[60%]">
+              <mat-form-field class="w-full rounded">
+                <mat-label>Búsqueda <mat-icon>search</mat-icon></mat-label>
+                <input matInput type="search" [(ngModel)]="valueInternal" />
+              </mat-form-field>
+              <mat-card appearance="raised" class="overflow-y-auto h-full shadow">
+                <mat-card-header>Recursos con permiso denegado:</mat-card-header>
+                <mat-card-content class="rounded">
+                  <ng-container *ngIf="vm.resourcesTreeInternalOrders && vm.resourcesTreeInternalOrders.length > 0">
+                    <ng-container *ngFor="let resourceRoot of vm.resourcesTreeInternalOrders">
+                      <app-resource-tree [resourceNode]="resourceRoot" [searchTerm]="valueInternal" [fromResource]="'selectedInternalOrders'" [noResultsMessage]="''"></app-resource-tree>
+                    </ng-container>
+                  </ng-container>
+                </mat-card-content>
+              </mat-card>
+            </div>
+            <div class="w-full flex justify-center items-center py-4">
+              <button (click)="store.confirmInternalOrdersCreation(false)" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed" [disabled]="vm.selectedInternalOrders.length===0">Permitir</button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </main>
+  </ng-container>
+</section>

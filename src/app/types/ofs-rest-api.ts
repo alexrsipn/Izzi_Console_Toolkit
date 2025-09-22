@@ -19,6 +19,7 @@ export interface Resource {
   parentResourceId?: string;
   resourceType: string;
   name: string;
+  XR_PERMISO_ACT_INT?: number,
   inventories?: expandItem;
   users?: expandItem;
   workZones?: expandItem;
@@ -28,6 +29,34 @@ export interface Resource {
   avatar?: expandItem;
   children?: Resource[];
   selected?: boolean;
+}
+
+export interface UpdateAResourceResponse {
+  XR_COMPANY: string;
+  XR_PERMISO_ACT_INT: number;
+  dateFormat: string;
+  durationStatisticsInitialPeriod?: string;
+  durationStatisticsInitialRatio?: string;
+  language: string;
+  languageISO: string;
+  name: string;
+  organization: string;
+  parentResourceId: string;
+  parentResourceInternalId: number;
+  resourceId: string;
+  resourceInternalId: number;
+  resourceType: string;
+  status: string;
+  timeFormat: string;
+  timeZone: string;
+  timeZoneDiff: number;
+  timeZoneIANA: string;
+  inventories?: any;
+  links?: any;
+  users?: any;
+  workSchedules?: any;
+  workSkills?: any;
+  workZones?: any;
 }
 
 export interface workSkillItems {

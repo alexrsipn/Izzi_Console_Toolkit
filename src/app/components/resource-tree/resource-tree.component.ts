@@ -1,4 +1,4 @@
-import {Component, inject, Input, signal, SimpleChanges} from '@angular/core';
+import {Component, inject, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {Resource} from "../../types/ofs-rest-api";
 import {CommonModule} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
@@ -6,14 +6,18 @@ import {MatCheckboxChange, MatCheckboxModule} from "@angular/material/checkbox";
 import {FormsModule} from "@angular/forms";
 import {AppStore} from "../../app.store";
 
+type SelectionType = 'selectedResidential' | 'selectedPyme' | 'selectedInternalOrders';
+
 @Component({
     selector: 'app-resource-tree',
     imports: [CommonModule, MatTooltipModule, MatCheckboxModule, FormsModule],
     templateUrl: './resource-tree.component.html'
 })
-export class ResourceTreeComponent {
+export class ResourceTreeComponent implements OnChanges {
   @Input() resourceNode!: Resource;
   @Input() searchTerm: string = '';
+  @Input() fromResource!: SelectionType;
+  @Input() noResultsMessage: string = "No se encontraron recursos que coincidan con la búsqueda.";
 
   private readonly store = inject(AppStore);
   vm$ = this.store.vm$;
@@ -32,7 +36,7 @@ export class ResourceTreeComponent {
       return;
     } else {
       const lowerSearchTerm = this.searchTerm.toLowerCase();
-      console.log(lowerSearchTerm);
+      /*console.log(lowerSearchTerm);*/
       const filteredNode = this._filterSingleNodeRecursive(this.resourceNode, lowerSearchTerm);
       this.displayableNodes = filteredNode ? filteredNode : null;
     }
@@ -61,13 +65,22 @@ export class ResourceTreeComponent {
 
   onSelectionChange(event: MatCheckboxChange): void {
     const isSelected = event.checked;
-    this.store.toggleResidentialSelection({resource: this.resourceNode, isSelected});
+    this.updateChildrenSelection(this.resourceNode, isSelected);
+    this.store.toggleSelection({resource: this.resourceNode, isSelected, selectionType: this.fromResource});
+    this.toggleAllChildren(this.resourceNode, isSelected);
   }
 
-/*  private updateChildrenSelection(node: Resource, isChecked: boolean) {
-      for (const child of node.children || []) {
-        child.selected = isChecked;
-        this.updateChildrenSelection(child, isChecked);
-      }
-    }*/
+  private updateChildrenSelection(node: Resource, isChecked: boolean) {
+    for (const child of node.children || []) {
+      child.selected = isChecked;
+      this.updateChildrenSelection(child, isChecked);
+    }
+  }
+
+  private toggleAllChildren(node: Resource, isSelected: boolean) {
+    (node.children || []).forEach(          child => {
+      this.store.toggleSelection({resource: child, isSelected, selectionType: this.fromResource});
+      this.toggleAllChildren(child, isSelected);
+    })
+  }
 }

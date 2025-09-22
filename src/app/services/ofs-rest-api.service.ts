@@ -7,7 +7,7 @@ import {
   SetWorkSkillResponse,
   resourcesToSetWorkskills,
   GetACalendarReqQueryParams,
-  GetACalendarResponse, SetAWorkScheduleBodyParams, SetAWorkScheduleResponse,
+  GetACalendarResponse, SetAWorkScheduleBodyParams, SetAWorkScheduleResponse, UpdateAResourceResponse,
 } from '../types/ofs-rest-api';
 import {forkJoin, map, mergeMap, Observable, of} from "rxjs";
 
@@ -53,7 +53,7 @@ export class OfsRestApiService {
 
   getAllResources() {
     const limit = 100;
-    const fields = 'resourceId,organization,status,parentResourceId,resourceType,name';
+    const fields = 'resourceId,organization,status,parentResourceId,resourceType,name,XR_PERMISO_ACT_INT';
     const expand = 'workSkills';
     return this.getResources({limit: limit, fields: fields, offset: 0, expand: expand}).pipe(
       mergeMap((res: GetResourcesResponse) => {
@@ -66,6 +66,19 @@ export class OfsRestApiService {
       map((responses) => responses.reduce<Resource[]>((acc, elem) => [...acc, ...elem.items], []))
     );
   };
+
+  updateAResourceInternalOrders(resourceId: string, allowInternalOrders: boolean) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}?identifyResourceBy=resourceId`;
+    const headers = new HttpHeaders({
+      Authorization: `Basic ${btoa(
+        this.credentials.user + ':' + this.credentials.pass
+      )}`
+    });
+    const body = {
+      "XR_PERMISO_ACT_INT": allowInternalOrders ? 1 : 0
+    };
+    return this.http.patch<UpdateAResourceResponse>(endpoint, body, {headers});
+  }
 
   setWorkSkills(resource: resourcesToSetWorkskills) {
     const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resource.resourceId}/workSkills`;

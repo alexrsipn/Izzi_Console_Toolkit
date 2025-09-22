@@ -4,12 +4,9 @@ import {
   GetResourcesResponse,
   GetResourcesReqQueryParams,
   Resource,
-  SetWorkSkillResponse,
-  resourcesToSetWorkskills,
-  GetACalendarReqQueryParams,
-  GetACalendarResponse, SetAWorkScheduleBodyParams, SetAWorkScheduleResponse, UpdateAResourceResponse,
+  UpdateAResourceResponse,
 } from '../types/ofs-rest-api';
-import {forkJoin, map, mergeMap, Observable, of} from "rxjs";
+import { forkJoin, map, mergeMap, Observable, of } from "rxjs";
 
 @Injectable({
   providedIn: 'root',
@@ -78,43 +75,5 @@ export class OfsRestApiService {
       "XR_PERMISO_ACT_INT": allowInternalOrders ? 1 : 0
     };
     return this.http.patch<UpdateAResourceResponse>(endpoint, body, {headers});
-  }
-
-  setWorkSkills(resource: resourcesToSetWorkskills) {
-    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resource.resourceId}/workSkills`;
-    const headers = new HttpHeaders({
-      Authorization: `Basic ${btoa(
-        this.credentials.user + ':' + this.credentials.pass
-      )}`
-    });
-    return this.http.post<SetWorkSkillResponse>(endpoint, resource.workSkills, {headers});
-  }
-
-  getACalendar(resourceId: string, queryParams: GetACalendarReqQueryParams) {
-    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}/workSchedules/calendarView`;
-    const headers = new HttpHeaders({
-      Authorization: `Basic ${btoa(
-        this.credentials.user + ':' + this.credentials.pass
-      )}`
-    });
-    const params = new HttpParams({
-      fromObject: {
-        ...queryParams,
-      }
-    });
-    return this.http.get<GetACalendarResponse>(endpoint, {
-      headers,
-      params
-    })
-  }
-
-  setAWorkSchedule(resourceId: string, queryParams: SetAWorkScheduleBodyParams) {
-    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}/workSchedules`;
-    const headers = new HttpHeaders({
-      Authorization: `Basic ${btoa(
-        this.credentials.user + ':' + this.credentials.pass
-      )}`
-    });
-    return this.http.post<SetAWorkScheduleResponse>(endpoint, queryParams, {headers});
   }
 }

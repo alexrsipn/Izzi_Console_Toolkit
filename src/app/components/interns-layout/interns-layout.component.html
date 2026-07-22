@@ -29,7 +29,7 @@
           </div>
         </div>
       </ng-container>
-      <ng-container *ngIf="vm.resourcesTreeInternalOrders && vm.resourcesTreeInternalOrders.length > 0">
+      <ng-container *ngIf="vm.resourcesTreeInternalOrders">
         <div class="flex flex-col justify-between items-center w-1/2 h-full">
           <div class="w-full h-full flex flex-col justify-between items-center gap-2 md:gap-4 lg:gap-6">
             <div class="w-full max-w-[80%] max-h-[60%]">
@@ -40,11 +40,12 @@
               <mat-card appearance="raised" class="overflow-y-auto h-full shadow">
                 <mat-card-header>Recursos con permiso denegado:</mat-card-header>
                 <mat-card-content class="rounded">
-                  <ng-container *ngIf="vm.resourcesTreeInternalOrders && vm.resourcesTreeInternalOrders.length > 0">
+<!--                  <ng-container *ngIf="vm.resourcesTreeInternalOrders && vm.resourcesTreeInternalOrders.length > 0">
                     <ng-container *ngFor="let resourceRoot of vm.resourcesTreeInternalOrders">
                       <app-resource-tree [resourceNode]="resourceRoot" [searchTerm]="valueInternal" [fromResource]="'selectedInternalOrders'" [noResultsMessage]="''"></app-resource-tree>
                     </ng-container>
-                  </ng-container>
+                  </ng-container>-->
+                  <app-resource-tree [resourceNode]="vm.resourcesTreeInternalOrders" [searchTerm]="valueInternal" [fromResource]="'selectedInternalOrders'" [noResultsMessage]="''"></app-resource-tree>
                 </mat-card-content>
               </mat-card>
             </div>

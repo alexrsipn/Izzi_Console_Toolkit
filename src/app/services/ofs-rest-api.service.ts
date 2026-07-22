@@ -3,6 +3,9 @@ import { Injectable } from '@angular/core';
 import {
   GetResourcesResponse,
   GetResourcesReqQueryParams,
+  GetUsersResponse,
+  GetUsersReqQueryParams,
+  User,
   Resource,
   UpdateAResourceResponse,
 } from '../types/ofs-rest-api';
@@ -63,6 +66,30 @@ export class OfsRestApiService {
       map((responses) => responses.reduce<Resource[]>((acc, elem) => [...acc, ...elem.items], []))
     );
   };
+
+  getUsers(queryParams: GetUsersReqQueryParams) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/users`;
+    const headers = new HttpHeaders({
+      Authorization: `Basic ${btoa(this.credentials.user + ':' + this.credentials.pass)}`
+    });
+    const params = new HttpParams({ fromObject: { ...queryParams } });
+    return this.http.get<GetUsersResponse>(endpoint, { headers, params });
+  }
+
+  getAllUsers() {
+    const limit = 100;
+    const fields = 'mainResourceId,login,name,status';
+    return this.getUsers({ limit, offset: 0, fields }).pipe(
+      mergeMap((res: GetUsersResponse) => {
+        const calls: Observable<GetUsersResponse>[] = [];
+        for (let offset = limit; offset < res.totalResults; offset += limit) {
+          calls.push(this.getUsers({ limit, offset, fields }));
+        }
+        return forkJoin([of(res), ...calls]);
+      }),
+      map((responses) => responses.reduce<User[]>((acc, elem) => [...acc, ...elem.items], []))
+    );
+  }
 
   updateAResourceInternalOrders(resourceId: string, allowInternalOrders: boolean) {
     const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}?identifyResourceBy=resourceId`;

@@ -26,7 +26,6 @@ import {MatButtonModule} from "@angular/material/button";
     FormsModule,
     MatButtonModule,
     MatCardHeader,
-    NgForOf
   ],
   templateUrl: './interns-layout.component.html',
   providers: [provideNativeDateAdapter()],

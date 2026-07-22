@@ -1,6 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Remove vertical separator line next to suffix/dropdown icons in Angular Material form fields */
+.mat-mdc-form-field-icon-suffix,
+.mat-mdc-form-field-suffix,
+.mat-form-field-suffix {
+  border-left: none !important;
+  border-right: none !important;
+  border: none !important;
+}
+
+.mat-mdc-form-field {
+  .mdc-notched-outline__notch {
+    border-right: none !important;
+    border-left: none !important;
+  }
+
+  .mdc-notched-outline__leading {
+    border-right: none !important;
+  }
+}
+
 /* You can add global styles to this file, and also import other style files */
 
 /*

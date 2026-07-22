@@ -19,9 +19,9 @@ export class DialogService {
     return dialogRef.afterClosed();
   }
 
-  success(message: string): Observable<void> {
+  success(message: string, title = 'Éxito'): Observable<void> {
     const dialogRef = this.dialog.open(SuccessDialogComponent, {
-      data: message,
+      data: { message, title },
     });
     return dialogRef.afterClosed();
   }
@@ -76,13 +76,13 @@ export class ErrorDialogComponent {
     imports: [MatIconModule, MatButtonModule, MatDialogModule],
     template: `
     <h1 mat-dialog-title style="margin-top: 1rem; display: flex">
-      <span>Éxito </span>
+      <span>{{data.title}} </span>
       <span style="align-self: center;">
         <mat-icon aria-hidden="false" aria-label="Success icon" fontIcon="check_circle" color="primary"></mat-icon>
       </span>
     </h1>
     <mat-dialog-content>
-      <p>{{data}}</p>
+      <p>{{data.message}}</p>
     </mat-dialog-content>
     <mat-dialog-actions>
       <button style="width: 100%;" mat-button mat-dialog-close>Cerrar</button>
@@ -90,7 +90,7 @@ export class ErrorDialogComponent {
   `
 })
 export class SuccessDialogComponent {
-  constructor(@Inject(MAT_DIALOG_DATA) public data: Error) {}
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { message: string; title: string }) {}
 }
 
 @Component({

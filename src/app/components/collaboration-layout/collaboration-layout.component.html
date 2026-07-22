@@ -1,0 +1,97 @@
+<div class="w-full h-full bg-[#f8fafc] flex justify-center items-start pt-12 p-4 overflow-y-auto">
+  <div class="w-full max-w-4xl bg-white border border-[#e2e8f0] rounded-lg shadow-sm p-8 md:p-10">
+
+    <!-- Descarga Rápida Section -->
+    <div class="flex flex-col items-start mb-8">
+      <h2 class="text-lg font-bold text-[#1e293b] m-0">Descarga días anteriores</h2>
+      <p class="text-sm text-[#64748b] mt-1 mb-4">Seleccionar fecha de reporte</p>
+
+      <!-- Available Dates Dropdown -->
+      <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">
+          <mat-label class="text-slate-600 font-medium">Fecha</mat-label>
+          <mat-select [(ngModel)]="selectedQuickDate" placeholder="Seleccionar fecha...">
+            <!-- Options list -->
+            <ng-container *ngIf="availableDates$ | async as availableDates">
+              <mat-option *ngFor="let date of availableDates" [value]="date.value">
+                {{ date.label }}
+              </mat-option>
+              <div *ngIf="availableDates.length === 0" class="p-4 text-center text-xs text-slate-400">
+                No se encontraron fechas
+              </div>
+            </ng-container>
+          </mat-select>
+        </mat-form-field>
+      <button [disabled]="!selectedQuickDate" (click)="downloadQuickReport()"
+        class="bg-indigo-600 text-white hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold px-5 py-2.5 rounded text-sm transition-colors duration-150 shadow-none">
+        Descargar
+      </button>
+    </div>
+
+    <!-- Divider Line -->
+    <div class="w-full border-t border-[#e2e8f0] mb-8"></div>
+
+    <!-- Descarga Personalizada Section -->
+    <div class="flex flex-col items-start">
+      <h2 class="text-lg font-bold text-[#1e293b] m-0">Descarga personalizada</h2>
+      <p class="text-sm text-[#64748b] mt-1 mb-6">Aplicar filtros para obtener información específica.</p>
+
+      <!-- Input Filters Row -->
+      <div class="grid grid-cols-12 gap-4 md:gap-6 w-full mb-6">
+
+        <!-- Technicians Dropdown with Search & Single-select -->
+        <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">
+          <mat-label class="text-slate-600 font-medium">Técnico</mat-label>
+          <mat-select [(ngModel)]="selectedPersona" (ngModelChange)="onPersonaSelectionChange($event)"
+            placeholder="Seleccionar técnico...">
+
+            <!-- Search input inside dropdown panel -->
+            <div class="px-3 py-2 sticky top-0 bg-white z-10 border-b border-slate-100 flex items-center gap-2">
+              <mat-icon class="text-slate-400 scale-90">search</mat-icon>
+              <input #searchInput type="text"
+                class="w-full text-sm outline-none border-none py-1 focus:ring-0 bg-transparent text-slate-800"
+                placeholder="Buscar técnico..." (input)="onPersonaSearch(searchInput.value)"
+                (keydown)="$event.stopPropagation()">
+            </div>
+
+            <!-- Options list -->
+            <ng-container *ngIf="filteredTechnicians$ | async as filteredTechs">
+              <mat-option *ngFor="let tech of filteredTechs" [value]="tech.login">
+                {{ tech.name }} <span class="text-xs text-slate-400 font-mono">({{ tech.login }})</span>
+              </mat-option>
+              <div *ngIf="filteredTechs.length === 0" class="p-4 text-center text-xs text-slate-400">
+                No se encontraron técnicos
+              </div>
+            </ng-container>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Chat Type Dropdown -->
+        <mat-form-field appearance="outline" class="col-span-12 md:col-span-3 custom-outline-field">
+          <mat-label class="text-slate-600 font-medium">Tipo de Chat</mat-label>
+          <mat-select [(ngModel)]="selectedChatType">
+            <mat-option value="">Seleccionar...</mat-option>
+            <mat-option value="individual">Individual</mat-option>
+            <mat-option value="broadcast">Difusión</mat-option>
+            <mat-option value="group">Grupo</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Hora Input with MatTimepicker -->
+        <mat-form-field appearance="outline" class="col-span-12 md:col-span-3 custom-outline-field">
+          <mat-label class="text-slate-600 font-medium">Hora</mat-label>
+          <input matInput [matTimepicker]="picker" placeholder="08:00 AM" [(ngModel)]="selectedTime" />
+          <mat-timepicker-toggle [for]="picker" matSuffix></mat-timepicker-toggle>
+          <mat-timepicker #picker interval="1h"></mat-timepicker>
+        </mat-form-field>
+
+      </div>
+
+      <!-- Action Button -->
+      <button [disabled]="!isAnyFilterApplied" (click)="downloadCustomReport()"
+        class="bg-indigo-600 text-white hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold px-5 py-2.5 rounded text-sm transition-colors duration-150 shadow-none">
+        Descargar
+      </button>
+    </div>
+
+  </div>
+</div>

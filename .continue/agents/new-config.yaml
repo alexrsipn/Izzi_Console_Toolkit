@@ -1,0 +1,19 @@
+# Archivo de configuración local para MacBook Air M1 (8GB RAM)
+# Corregido para la versión de Continue 2.0.0+
+
+name: Local Angular 19 Dev Config
+version: 1.0.0
+schema: v1
+
+# Configuración de los modelos y sus funciones específicas
+models:
+  - name: Qwen 2.5 Coder 1.5B
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    roles:
+      - chat
+      - edit
+      - apply
+      - autocomplete # Indica a Continue que use este modelo para autocompletado inline
+    defaultCompletionOptions:
+      temperature: 0.2

@@ -19,6 +19,7 @@ export interface Resource {
   parentResourceId?: string;
   resourceType: string;
   name: string;
+  login?: string;
   XR_PERMISO_ACT_INT?: number,
   inventories?: expandItem;
   users?: expandItem;
@@ -29,6 +30,26 @@ export interface Resource {
   avatar?: expandItem;
   children?: Resource[];
   selected?: boolean;
+}
+
+export interface GetUsersReqQueryParams {
+  limit: number;
+  offset: number;
+  fields: string;
+}
+
+export interface GetUsersResponse {
+  totalResults: number;
+  limit: number;
+  offset: number;
+  items: User[];
+}
+
+export interface User {
+  mainResourceId: string;
+  login: string;
+  name: string;
+  status: string;
 }
 
 export interface UpdateAResourceResponse {

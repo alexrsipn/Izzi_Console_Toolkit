@@ -6,6 +6,7 @@ import { SpinnerComponent } from './components/spinner/spinner.component';
 import { MatIconModule } from "@angular/material/icon";
 import { MatTabsModule } from "@angular/material/tabs";
 import { InternsLayoutComponent } from "./components/interns-layout/interns-layout.component";
+import { CollaborationLayoutComponent } from "./components/collaboration-layout/collaboration-layout.component";
 
 @Component({
     selector: 'app-root',
@@ -15,6 +16,7 @@ import { InternsLayoutComponent } from "./components/interns-layout/interns-layo
         MatIconModule,
         SpinnerComponent,
         InternsLayoutComponent,
+        CollaborationLayoutComponent,
         MatTabsModule
     ],
     templateUrl: './app.component.html'

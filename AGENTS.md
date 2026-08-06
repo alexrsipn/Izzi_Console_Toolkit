@@ -33,11 +33,19 @@ npm test               # Karma + Jasmine (Chrome required)
 |---|---|
 | `src/app/app.store.ts` | Central store — all effects, updaters, state |
 | `src/app/services/ofs-api-plugin.service.ts` | OFS plugin API (postMessage) |
-| `src/app/services/ofs-rest-api.service.ts` | OFS REST API HTTP calls |
-| `src/app/services/aws.service.ts` | AWS token + date reports |
+| `src/app/services/ofs-rest-api.service.ts` | OFS REST API HTTP calls (resources + users) |
+| `src/app/services/aws.service.ts` | AWS token, available dates, report downloads |
 | `src/app/services/resource-tree.service.ts` | Tree/forest construction from flat resource lists |
 | `src/app/services/excel-export.service.ts` | XLSX export via SheetJS |
-| `src/app/services/dialog.service.ts` | Material dialogs (error, success, confirm) |
+| `src/app/services/dialog.service.ts` | Material dialogs (error, success, confirm, invalid) |
+
+## Patterns
+
+- **CSV download effects**: Use `responseType: 'text'`, wrap in `new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })` for UTF-8 BOM, trigger via `<a>` element click + `URL.createObjectURL/revokeObjectURL`
+- **AWS download endpoint**: `/export-chats` — all filter params go in URL query string (no request body)
+- **Store → Component reset**: Use `Subject<void>` + observable (e.g. `downloadCompleted$`) for post-effect UI cleanup. Component subscribes with `takeUntil(destroy$)` in `OnInit`
+- **Single select on mat-select**: Without `multiple`, `[(ngModel)]` assigns a single value (not array). Type as `string | null`, not `string[]`
+- **Date display vs value**: Map API dates to `{ value: original, label: formatted }` objects — bind `[value]="item.value"`, display `{{ item.label }}`
 
 ## Code conventions
 

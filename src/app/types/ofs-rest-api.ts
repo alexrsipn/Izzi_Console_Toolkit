@@ -52,6 +52,11 @@ export interface User {
   status: string;
 }
 
+export interface UserOption {
+  login: string;
+  name: string;
+}
+
 export interface UpdateAResourceResponse {
   XR_COMPANY: string;
   XR_PERMISO_ACT_INT: number;

@@ -64,7 +64,7 @@ export class TokenService {
     }
 
     downloadReport(date: string): Observable<string> {
-        const endpoint = `${this.awsBaseUrl}/download-report`;
+        const endpoint = `${this.awsBaseUrl}/export-chats`;
         const headers = new HttpHeaders({
             Authorization: `${this.token}`,
             'x-api-key': this.credentials.aws_api_key
@@ -73,14 +73,16 @@ export class TokenService {
         return this.http.get(endpoint, { headers, params, responseType: 'text' });
     }
 
-    downloadCustomReport(date: string, body: { today: string; user: string; chatType: string; hour: string }): Observable<string> {
-        const endpoint = `${this.awsBaseUrl}/download-report`;
+    downloadCustomReport(date: string, query: { user: string; chatType: string; hour: string }): Observable<string> {
+        const endpoint = `${this.awsBaseUrl}/export-chats`;
         const headers = new HttpHeaders({
             Authorization: `${this.token}`,
-            'x-api-key': this.credentials.aws_api_key,
-            'Content-Type': 'application/json'
+            'x-api-key': this.credentials.aws_api_key
         });
-        const params = new HttpParams({ fromObject: { date } });
-        return this.http.request('GET', endpoint, { headers, params, body, responseType: 'text' });
+        const filteredParams = Object.fromEntries(
+            Object.entries(query).filter(([_, v]) => v !== '')
+        );
+        const params = new HttpParams({ fromObject: { date, ...filteredParams } });
+        return this.http.get(endpoint, { headers, params, responseType: 'text' });
     }
 }

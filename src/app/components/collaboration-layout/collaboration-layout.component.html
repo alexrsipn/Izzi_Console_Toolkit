@@ -8,19 +8,19 @@
 
       <!-- Available Dates Dropdown -->
       <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">
-          <mat-label class="text-slate-600 font-medium">Fecha</mat-label>
-          <mat-select [(ngModel)]="selectedQuickDate" placeholder="Seleccionar fecha...">
-            <!-- Options list -->
-            <ng-container *ngIf="availableDates$ | async as availableDates">
-              <mat-option *ngFor="let date of availableDates" [value]="date.value">
-                {{ date.label }}
-              </mat-option>
-              <div *ngIf="availableDates.length === 0" class="p-4 text-center text-xs text-slate-400">
-                No se encontraron fechas
-              </div>
-            </ng-container>
-          </mat-select>
-        </mat-form-field>
+        <mat-label class="text-slate-600 font-medium">Fecha</mat-label>
+        <mat-select [(ngModel)]="selectedQuickDate" placeholder="Seleccionar fecha...">
+          <!-- Options list -->
+          <ng-container *ngIf="availableDates$ | async as availableDates">
+            <mat-option *ngFor="let date of availableDates" [value]="date.value">
+              {{ date.label }}
+            </mat-option>
+            <div *ngIf="availableDates.length === 0" class="p-4 text-center text-xs text-slate-400">
+              No se encontraron fechas
+            </div>
+          </ng-container>
+        </mat-select>
+      </mat-form-field>
       <button [disabled]="!selectedQuickDate" (click)="downloadQuickReport()"
         class="bg-indigo-600 text-white hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold px-5 py-2.5 rounded text-sm transition-colors duration-150 shadow-none">
         Descargar
@@ -38,28 +38,28 @@
       <!-- Input Filters Row -->
       <div class="grid grid-cols-12 gap-4 md:gap-6 w-full mb-6">
 
-        <!-- Technicians Dropdown with Search & Single-select -->
+        <!-- Users Dropdown with Search & Single-select -->
         <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">
-          <mat-label class="text-slate-600 font-medium">Técnico</mat-label>
+          <mat-label class="text-slate-600 font-medium">Usuario</mat-label>
           <mat-select [(ngModel)]="selectedPersona" (ngModelChange)="onPersonaSelectionChange($event)"
-            placeholder="Seleccionar técnico...">
+            placeholder="Seleccionar usuario...">
 
             <!-- Search input inside dropdown panel -->
             <div class="px-3 py-2 sticky top-0 bg-white z-10 border-b border-slate-100 flex items-center gap-2">
               <mat-icon class="text-slate-400 scale-90">search</mat-icon>
-              <input #searchInput type="text"
+              <input type="text"
                 class="w-full text-sm outline-none border-none py-1 focus:ring-0 bg-transparent text-slate-800"
-                placeholder="Buscar técnico..." (input)="onPersonaSearch(searchInput.value)"
+                placeholder="Buscar usuario..." [(ngModel)]="searchQuery" (ngModelChange)="onPersonaSearch($event)"
                 (keydown)="$event.stopPropagation()">
             </div>
 
             <!-- Options list -->
-            <ng-container *ngIf="filteredTechnicians$ | async as filteredTechs">
-              <mat-option *ngFor="let tech of filteredTechs" [value]="tech.login">
-                {{ tech.name }} <span class="text-xs text-slate-400 font-mono">({{ tech.login }})</span>
+            <ng-container *ngIf="filteredUsers$ | async as filteredUsers">
+              <mat-option *ngFor="let user of filteredUsers" [value]="user.login">
+                {{ user.name }} <span class="text-xs text-slate-400 font-mono">({{ user.login }})</span>
               </mat-option>
-              <div *ngIf="filteredTechs.length === 0" class="p-4 text-center text-xs text-slate-400">
-                No se encontraron técnicos
+              <div *ngIf="filteredUsers.length === 0" class="p-4 text-center text-xs text-slate-400">
+                No se encontraron usuarios
               </div>
             </ng-container>
           </mat-select>

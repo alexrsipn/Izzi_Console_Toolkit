@@ -78,7 +78,7 @@ export class OfsRestApiService {
 
   getAllUsers() {
     const limit = 100;
-    const fields = 'mainResourceId,login,name,status';
+    const fields = 'login,name';
     return this.getUsers({ limit, offset: 0, fields }).pipe(
       mergeMap((res: GetUsersResponse) => {
         const calls: Observable<GetUsersResponse>[] = [];

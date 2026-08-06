@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Resource, User } from './types/ofs-rest-api';
+import { Resource, User, UserOption } from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
 import { OfsRestApiService } from './services/ofs-rest-api.service';
@@ -9,7 +9,7 @@ import {
   concatMap,
   map,
   tap,
-  switchMap, delay, forkJoin, catchError, Subject,
+  switchMap, delay, forkJoin, catchError, Subject, filter,
 } from 'rxjs';
 import { DataRange } from './types/plugin';
 import { DialogService } from './services/dialog.service';
@@ -33,6 +33,7 @@ interface State {
   allowInternalOrdersProcess?: boolean;
   resourcesToUpdate?: Resource[];
   availableReportDates?: string[];
+  users?: UserOption[];
 }
 
 type SelectionType = 'selectedResidential' | 'selectedPyme' | 'selectedInternalOrders' | 'selectedCollaboration';
@@ -137,6 +138,10 @@ export class AppStore extends ComponentStore<State> {
     ...state,
     availableReportDates
   }));
+  readonly setUsers = this.updater<UserOption[]>((state, users) => ({
+    ...state,
+    users
+  }));
 
   // Effects
   private readonly handleOpenMessage = this.effect<Message>(($) =>
@@ -173,18 +178,9 @@ export class AppStore extends ComponentStore<State> {
       tap((resourcesTreeRaw) => this.setResourcesTreeRaw(resourcesTreeRaw)),
       concatMap((resourcesTreeRaw) => resourcesTreeRaw && this.handleResourcesTree(resourcesTreeRaw)),
       concatMap(() => this.ofsRestApi.getAllUsers()),
-      tap((users: User[]) => {
-        const loginMap = new Map<string, string>(users.map((u) => [u.mainResourceId, u.login]));
-        const updated = this.get().resourcesTreeRaw!.map((r) => ({
-          ...r,
-          login: loginMap.get(r.resourceId) ?? r.login
-        }));
-        this.setResourcesTreeRaw(updated);
-      }),
-      tap(() => {
-        const raw = this.get().resourcesTreeRaw;
-        if (raw) this.handleResourcesTree(raw);
-      }),
+      tap((users: User[]) => this.setUsers(
+        users.filter(u => u.login).map(u => ({ login: u.login, name: u.name }))
+      )),
       tap(() => this.setIsLoading(false)),
     )
   );
@@ -267,16 +263,21 @@ export class AppStore extends ComponentStore<State> {
       switchMap((date) => this.awsService.downloadReport(date).pipe(
         map((csv) => ({ csv, date }))
       )),
+      tap(({ csv }) => {
+        if (!this.hasCsvData(csv)) {
+          this.dialogService.info('No se encontró información con los parámetros seleccionados. Intentar nuevamente', 'Sin información');
+          this.setIsLoading(false);
+          this.downloadCompleted.next();
+        }
+      }),
+      filter(({ csv }) => this.hasCsvData(csv)),
       tap(({ csv, date }) => {
         const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         const [yyyy, mm, dd] = date.split('-');
-        const now = new Date();
-        const hh = now.getHours().toString().padStart(2, '0');
-        const min = now.getMinutes().toString().padStart(2, '0');
-        link.download = `reporte_${dd}-${mm}-${yyyy}_${hh}-${min}.csv`;
+        link.download = `${dd}-${mm}-${yyyy}.csv`;
         link.click();
         window.URL.revokeObjectURL(url);
         link.remove();
@@ -301,21 +302,26 @@ export class AppStore extends ComponentStore<State> {
       map((params) => {
         const now = new Date();
         const date = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-        return { date, params: { ...params, today: '1' } };
+        return { date, params };
       }),
       switchMap(({ date, params }) => this.awsService.downloadCustomReport(date, params).pipe(
         map((csv) => ({ csv, date }))
       )),
+      tap(({ csv }) => {
+        if (!this.hasCsvData(csv)) {
+          this.dialogService.info('No se encontró información para los parámetros seleccionados.', 'Sin información');
+          this.setIsLoading(false);
+          this.downloadCompleted.next();
+        }
+      }),
+      filter(({ csv }) => this.hasCsvData(csv)),
       tap(({ csv, date }) => {
         const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         const [yyyy, mm, dd] = date.split('-');
-        const now = new Date();
-        const hh = now.getHours().toString().padStart(2, '0');
-        const min = now.getMinutes().toString().padStart(2, '0');
-        link.download = `reporte_${dd}-${mm}-${yyyy}_${hh}-${min}.csv`;
+        link.download = `${dd}-${mm}-${yyyy}.csv`;
         link.click();
         window.URL.revokeObjectURL(url);
         link.remove();
@@ -378,5 +384,10 @@ export class AppStore extends ComponentStore<State> {
       allowInternalOrdersProcess: undefined,
       resourcesToUpdate: []
     });
+  }
+
+  private hasCsvData(csv: string): boolean {
+    const lines = csv.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    return lines.length > 1;
   }
 }

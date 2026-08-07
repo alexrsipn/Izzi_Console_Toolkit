@@ -1,13 +1,13 @@
-<div class="w-full h-full bg-[#f8fafc] flex justify-center items-start pt-12 p-4 overflow-y-auto">
-  <div class="w-full max-w-4xl bg-white border border-[#e2e8f0] rounded-lg shadow-sm p-8 md:p-10">
+<div class="w-full h-full bg-[#f8fafc] flex justify-center items-start pt-4 p-4 overflow-y-auto">
+  <div class="w-full max-w-4xl bg-white border border-[#e2e8f0] rounded-lg shadow-sm p-6">
 
     <!-- Descarga Rápida Section -->
-    <div class="flex flex-col items-start mb-8">
+    <div class="flex flex-col items-start mb-4">
       <h2 class="text-lg font-bold text-[#1e293b] m-0">Descarga días anteriores</h2>
-      <p class="text-sm text-[#64748b] mt-1 mb-4">Seleccionar fecha de reporte</p>
+      <p class="text-sm text-[#64748b] mt-1 mb-3">Seleccionar fecha de reporte</p>
 
       <!-- Available Dates Dropdown -->
-      <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">
+      <mat-form-field appearance="outline" class="w-full max-w-md custom-outline-field">
         <mat-label class="text-slate-600 font-medium">Fecha</mat-label>
         <mat-select [(ngModel)]="selectedQuickDate" placeholder="Seleccionar fecha...">
           <!-- Options list -->
@@ -21,6 +21,8 @@
           </ng-container>
         </mat-select>
       </mat-form-field>
+
+      <!-- Action Button -->
       <button [disabled]="!selectedQuickDate" (click)="downloadQuickReport()"
         class="bg-indigo-600 text-white hover:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold px-5 py-2.5 rounded text-sm transition-colors duration-150 shadow-none">
         Descargar
@@ -28,15 +30,15 @@
     </div>
 
     <!-- Divider Line -->
-    <div class="w-full border-t border-[#e2e8f0] mb-8"></div>
+    <div class="w-full border-t border-[#e2e8f0] mb-4"></div>
 
     <!-- Descarga Personalizada Section -->
     <div class="flex flex-col items-start">
       <h2 class="text-lg font-bold text-[#1e293b] m-0">Descarga personalizada</h2>
-      <p class="text-sm text-[#64748b] mt-1 mb-6">Aplicar filtros para obtener información específica.</p>
+      <p class="text-sm text-[#64748b] mt-1 mb-3">Aplicar filtros para obtener información específica.</p>
 
       <!-- Input Filters Row -->
-      <div class="grid grid-cols-12 gap-4 md:gap-6 w-full mb-6">
+      <div class="grid grid-cols-12 gap-3 w-full mb-3">
 
         <!-- Users Dropdown with Search & Single-select -->
         <mat-form-field appearance="outline" class="col-span-12 md:col-span-6 custom-outline-field">

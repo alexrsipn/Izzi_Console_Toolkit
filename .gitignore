@@ -20,6 +20,9 @@ yarn-error.log
 .settings/
 *.sublime-workspace
 .agent/*
+.agents/*
+skills-lock.json
+.claude/*
 
 # Visual Studio Code
 .vscode/*

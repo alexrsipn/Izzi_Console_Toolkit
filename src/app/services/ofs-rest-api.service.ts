@@ -3,6 +3,8 @@ import { Injectable } from '@angular/core';
 import {
   GetResourcesResponse,
   GetResourcesReqQueryParams,
+  GetDescendantsReqQueryParams,
+  GetDescendantsResponse,
   GetUsersResponse,
   GetUsersReqQueryParams,
   User,
@@ -66,6 +68,36 @@ export class OfsRestApiService {
       map((responses) => responses.reduce<Resource[]>((acc, elem) => [...acc, ...elem.items], []))
     );
   };
+
+  getDescendants(resourceId: string, queryParams: GetDescendantsReqQueryParams) {
+    const endpoint = `${this.baseUrl}/rest/ofscCore/v1/resources/${resourceId}/descendants`;
+    const headers = new HttpHeaders({
+      Authorization: `Basic ${btoa(
+        this.credentials.user + ':' + this.credentials.pass
+      )}`
+    });
+    let params = new HttpParams();
+    Object.entries(queryParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+    return this.http.get<GetDescendantsResponse>(endpoint, { headers, params });
+  }
+
+  getAllDescendants(resourceId: string, queryParams: Omit<GetDescendantsReqQueryParams, 'limit' | 'offset'>) {
+    const limit = 100;
+    return this.getDescendants(resourceId, { ...queryParams, limit, offset: 0 }).pipe(
+      mergeMap((res: GetDescendantsResponse) => {
+        const calls: Observable<GetDescendantsResponse>[] = [];
+        for (let offset = limit; offset < res.totalResults; offset += limit) {
+          calls.push(this.getDescendants(resourceId, { ...queryParams, limit, offset }));
+        }
+        return forkJoin([of(res), ...calls]);
+      }),
+      map((responses) => responses.reduce<Resource[]>((acc, elem) => [...acc, ...elem.items], []))
+    );
+  }
 
   getUsers(queryParams: GetUsersReqQueryParams) {
     const endpoint = `${this.baseUrl}/rest/ofscCore/v1/users`;

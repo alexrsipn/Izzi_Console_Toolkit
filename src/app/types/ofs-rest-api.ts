@@ -12,6 +12,20 @@ export interface GetResourcesResponse {
   items: Resource[];
 }
 
+export interface GetDescendantsReqQueryParams {
+  expand?: string;
+  fields?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetDescendantsResponse {
+  totalResults: number;
+  limit: number;
+  offset: number;
+  items: Resource[];
+}
+
 export interface Resource {
   resourceId: string;
   organization: string;
@@ -103,6 +117,63 @@ export interface expandItem {
 export interface links {
   rel: string;
   href: string;
+}
+
+export interface expandedItems<T> {
+  items: T[];
+}
+
+export interface expandedWorkZoneItem {
+  workZoneItemId?: number;
+  workZoneStatus?: string;
+  workZone?: string;
+  startDate?: string;
+  ratio?: number;
+  recurrence?: string;
+  recurEvery?: number;
+  type?: string;
+}
+
+export interface expandedScheduleShift {
+  recordType?: string;
+  startDate?: string;
+  scheduleLabel?: string;
+  shiftLabel?: string;
+  shiftType?: string;
+  workTimeStart?: string;
+  workTimeEnd?: string;
+  isWorking?: boolean;
+  recurrence?: expandedRecurrence;
+}
+
+export interface expandedRecurrence {
+  recurrenceType?: string;
+  recurEvery?: number;
+  weekdays?: string[];
+}
+
+export interface expandedWorkScheduleItem {
+  recordType?: string;
+  startDate?: string;
+  shiftLabel?: string;
+  shiftType?: string;
+  workTimeStart?: string;
+  workTimeEnd?: string;
+  isWorking?: boolean;
+  scheduleItemId?: number;
+  scheduleLabel?: string;
+  recurrence?: expandedRecurrence;
+  scheduleShifts?: expandedScheduleShift[];
+}
+
+export interface expandedInventoryItem {
+  serialNumber?: string;
+  status?: string;
+  inventoryType?: string;
+  inventoryId?: number;
+  resourceId?: string;
+  resourceInternalId?: number;
+  quantity?: number;
 }
 
 export interface workSkills {

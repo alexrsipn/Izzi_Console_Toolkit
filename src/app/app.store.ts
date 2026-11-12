@@ -1,5 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Resource, User, UserOption } from './types/ofs-rest-api';
+import {
+  Resource,
+  User,
+  UserOption,
+  workSkillItem,
+  expandedWorkZoneItem,
+  expandedWorkScheduleItem,
+  expandedInventoryItem
+} from './types/ofs-rest-api';
 import { ComponentStore } from '@ngrx/component-store';
 import { OfsApiPluginService } from './services/ofs-api-plugin.service';
 import { OfsRestApiService } from './services/ofs-rest-api.service';
@@ -37,6 +45,14 @@ interface State {
 }
 
 type SelectionType = 'selectedResidential' | 'selectedPyme' | 'selectedInternalOrders' | 'selectedCollaboration';
+
+export interface ResourceTreeDownloadParams {
+  businessLine: string;
+  includeWorkZones: boolean;
+  includeWorkSkills: boolean;
+  includeWorkSchedules: boolean;
+  includeInventories: boolean;
+}
 
 const initialState: State = {
   isLoading: false,
@@ -340,6 +356,65 @@ export class AppStore extends ComponentStore<State> {
     )
   );
 
+  public readonly handleDownloadResourceTree = this.effect<ResourceTreeDownloadParams>((params$) =>
+    params$.pipe(
+      tap(() => this.setIsLoading(true)),
+      map(({ businessLine, includeWorkZones, includeWorkSkills, includeWorkSchedules, includeInventories }) => {
+        const resourceId = businessLine === 'CODI' ? 'GR_CODI_CUAD_EMER_PE' : 'IZZI_GPO';
+        const expand = [
+          includeWorkZones ? 'workZones' : '',
+          includeWorkSkills ? 'workSkills' : '',
+          includeWorkSchedules ? 'workSchedules' : '',
+          includeInventories ? 'inventories' : ''
+        ].filter(Boolean).join(',');
+        return { resourceId, expand, businessLine, includeWorkZones, includeWorkSkills, includeWorkSchedules, includeInventories };
+      }),
+      switchMap(({ resourceId, expand, businessLine, includeWorkZones, includeWorkSkills, includeWorkSchedules, includeInventories }) =>
+        this.ofsRestApi.getAllDescendants(resourceId, {
+          expand,
+          fields: 'resourceId,name,resourceType,parentResourceId,status,organization'
+        }).pipe(
+          map((resources) => ({ resources, businessLine, includeWorkZones, includeWorkSkills, includeWorkSchedules, includeInventories }))
+        )
+      ),
+      switchMap(({ resources, businessLine, includeWorkZones, includeWorkSkills, includeWorkSchedules, includeInventories }) => {
+        if (!resources || resources.length === 0) {
+          this.dialogService.info('No se encontró información para los parámetros seleccionados.', 'Sin información');
+          this.setIsLoading(false);
+          this.downloadCompleted.next();
+          return EMPTY;
+        }
+        const forest = this.resourceTreeService.buildForest(resources);
+        const flattened = this.flattenForestPreOrder(forest);
+        const dataToExport = flattened.map(({ resource, level }) => ({
+          'Nivel': level,
+          'ID Recurso': resource.resourceId,
+          'ID Recurso padre': resource.parentResourceId,
+          'Nombre': resource.name,
+          'Tipo': resource.resourceType,
+          'Organización': resource.organization,
+          'Estado': resource.status,
+          ...(includeWorkZones ? { 'Zonas de trabajo': this.formatExpandedField(resource.workZones, 'workZones') } : {}),
+          ...(includeWorkSkills ? { 'Habilidades': this.formatExpandedField(resource.workSkills, 'workSkills') } : {}),
+          ...(includeWorkSchedules ? { 'Calendario': this.formatExpandedField(resource.workSchedules, 'workSchedules') } : {}),
+          ...(includeInventories ? { 'Inventarios': this.formatExpandedField(resource.inventories, 'inventories') } : {})
+        }));
+        return this.excelExportService.exportAsExcelFile(dataToExport, `Arbol_Recursos_${businessLine}`);
+      }),
+      tap(() => this.dialogService.success(
+        'El árbol de recursos se ha exportado exitosamente.',
+        'Exportación exitosa'
+      )),
+      tap(() => this.setIsLoading(false)),
+      tap(() => this.downloadCompleted.next()),
+      catchError(() => {
+        this.dialogService.error('Error al descargar el árbol de recursos.');
+        this.setIsLoading(false);
+        return EMPTY;
+      })
+    )
+  );
+
   // Actions
   private handleResourcesTree(resourcesTreeRaw: Resource[]) {
     const cleanedResourcesTreeRaw = resourcesTreeRaw.filter((resource) =>
@@ -389,5 +464,74 @@ export class AppStore extends ComponentStore<State> {
   private hasCsvData(csv: string): boolean {
     const lines = csv.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     return lines.length > 1;
+  }
+
+  private formatExpandedField(value: unknown, type: 'workZones' | 'workSkills' | 'workSchedules' | 'inventories'): string {
+    if (!value) {
+      return '';
+    }
+    const expanded = value as { items?: unknown[]; links?: unknown[] };
+    if (expanded.items?.length) {
+      let cell = '';
+      switch (type) {
+        case 'workZones':
+          cell = (expanded.items as expandedWorkZoneItem[])
+            .map(item => item.workZone)
+            .filter((zone): zone is string => !!zone)
+            .join(', ');
+          break;
+        case 'workSkills':
+          cell = (expanded.items as workSkillItem[])
+            .map(item => item.workSkill)
+            .filter(Boolean)
+            .join(', ');
+          break;
+        case 'workSchedules': {
+          const labels: string[] = [];
+          (expanded.items as expandedWorkScheduleItem[]).forEach(item => {
+            if (item.shiftLabel && !labels.includes(item.shiftLabel)) {
+              labels.push(item.shiftLabel);
+            }
+            if (item.scheduleLabel && !labels.includes(item.scheduleLabel)) {
+              labels.push(item.scheduleLabel);
+            }
+            (item.scheduleShifts || []).forEach(shift => {
+              if (shift.shiftLabel && !labels.includes(shift.shiftLabel)) {
+                labels.push(shift.shiftLabel);
+              }
+            });
+          });
+          cell = labels.join(', ');
+          break;
+        }
+        case 'inventories':
+          cell = (expanded.items as expandedInventoryItem[])
+            .map(item => `${item.inventoryType}${item.serialNumber ? ` (${item.serialNumber})` : ''}`)
+            .join(', ');
+          break;
+      }
+      return cell.length > 32000 ? `${cell.slice(0, 32000)}...` : cell;
+    }
+    if (expanded.links?.length) {
+      const emptyMessages: Record<string, string> = {
+        workZones: 'Sin restricción de zonas',
+        workSkills: 'Sin habilidades asignadas',
+        workSchedules: 'Sin calendario asignado',
+        inventories: 'Sin inventario asignado'
+      };
+      return emptyMessages[type] || '';
+    }
+    return '';
+  }
+
+  private flattenForestPreOrder(forest: Resource[], level = 0): {resource: Resource, level: number}[] {
+    const result: {resource: Resource, level: number}[] = [];
+    for (const node of forest) {
+      result.push({resource: node, level});
+      if (node.children?.length) {
+        result.push(...this.flattenForestPreOrder(node.children, level + 1));
+      }
+    }
+    return result;
   }
 }

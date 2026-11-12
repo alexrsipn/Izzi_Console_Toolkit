@@ -7,6 +7,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatTabsModule } from "@angular/material/tabs";
 import { InternsLayoutComponent } from "./components/interns-layout/interns-layout.component";
 import { CollaborationLayoutComponent } from "./components/collaboration-layout/collaboration-layout.component";
+import { ResourceTreeLayoutComponent } from "./components/resource-tree-layout/resource-tree-layout.component";
 
 @Component({
     selector: 'app-root',
@@ -17,6 +18,7 @@ import { CollaborationLayoutComponent } from "./components/collaboration-layout/
         SpinnerComponent,
         InternsLayoutComponent,
         CollaborationLayoutComponent,
+        ResourceTreeLayoutComponent,
         MatTabsModule
     ],
     templateUrl: './app.component.html'
